@@ -1,6 +1,7 @@
 # This is a sample Python script.
 import SALM
 import numpy as np
+import portfolio as pf
 # Press Shift+F10 to execute it or replace it with your code.
 # Press Double Shift to search everywhere for classes, files, tool windows, actions, and settings.
 
@@ -108,3 +109,5 @@ if __name__ == '__main__':
     # Call the solver
     result = SALM.salm(f, phi=phi,phi_prox=phi_prox, x0=x0, g=[g1, g2], f_grad=f_grad, jac_g=[jac_g1, jac_g2], tol=1e-5, maxiter=200)
     print("Optimized solution:", result)
+
+

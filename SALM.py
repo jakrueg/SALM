@@ -13,7 +13,7 @@ def salm(f,
     jac_h=None,
     pen0 = 1,
     pen_max = 1e8,
-    gamma = 1.5,
+    gamma = 2,
     lam0 = None,
     mu0=None,
     lam_max=1e8,
@@ -95,6 +95,7 @@ def salm(f,
             grad_sum += np.transpose(np.matmul(np.transpose(h_Jac_temp),mu_temp+pen_temp*h_temp))
         g_temp = eval_g(x_value)
         g_Jac_temp = eval_jac_g(x_value)
+        #print(g_Jac_temp)
         if len(g_temp) > 0:
             #grad_sum += g_Jac_temp.T.dot(lam_temp+pen_temp*np.maximum(0.0,g_temp))
             grad_sum += np.transpose(np.matmul(np.transpose(g_Jac_temp),lam_temp+pen_temp*np.maximum(0.0,g_temp)))
@@ -116,10 +117,10 @@ def salm(f,
         def inner_jac(x_value):
             return augmented_lagrangian_grad(x_value, u, v, pen)
         if phi_prox is not None:
-            res = copt.minimize_proximal_gradient(fun=inner_fun,jac=inner_jac,x0=x,verbose=2)
-            print(res.x)
-            print(res.nit)
-            print(res.success)
+            res = copt.minimize_proximal_gradient(fun=inner_fun,jac=inner_jac,x0=x,verbose=2,tol=1e-6)
+            #print(res.x)
+            #print(res.nit)
+            #print(res.success)
         else:
             res  = minimize(inner_fun, x, jac=inner_jac, method='L-BFGS-B')
             print("No suitable prox-operator!")
@@ -141,7 +142,7 @@ def salm(f,
 
         # Termination criteria
         grad_norm = np.linalg.norm(augmented_lagrangian_grad(x_new, u, v, pen))
-        print(grad_norm)
+        #print(grad_norm)
         if grad_norm < tol and eq_norm < tol and ineq_norm < tol:
             print(f"Converged in {k} iterations.")
             return x_new
