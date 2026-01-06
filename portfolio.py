@@ -4,9 +4,8 @@ import scipy.optimize as opt
 import pandas_datareader.data as web
 import warnings
 import proxGenerator
-warnings.simplefilter(action="ignore", category=FutureWarning)
-import datetime as dt
-from pandas_datareader.famafrench import get_available_datasets
+#warnings.simplefilter(action="ignore", category=FutureWarning)
+
 
 # Random Portfolio Generation
 def generate_portfolio_random(n, seed=0):
