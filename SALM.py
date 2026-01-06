@@ -18,7 +18,8 @@ def salm(f,
     mu0=None,
     lam_max=1e8,
     mu_max=1e8,
-    tol=1e-6,
+    tol_grad=1e-3,
+    tol_cons=1e-6,
     maxiter=200,
     tau = 0.5
 ):
@@ -117,7 +118,7 @@ def salm(f,
         def inner_jac(x_value):
             return augmented_lagrangian_grad(x_value, u, v, pen)
         if phi_prox is not None:
-            res = copt.minimize_proximal_gradient(fun=inner_fun,jac=inner_jac,x0=x,verbose=2,tol=1e-6)
+            res = copt.minimize_proximal_gradient(fun=inner_fun,jac=inner_jac,prox=phi_prox,x0=x,verbose=2,tol=1e-4)
             #print(res.x)
             #print(res.nit)
             #print(res.success)
@@ -132,6 +133,7 @@ def salm(f,
             ineq_norm = np.linalg.norm(np.minimum(-g_new, (1 / pen) * u))
         else:
             ineq_norm = 0.0
+            lam_new = u
 
         if p>0:
             h_new = eval_h(x_new)
@@ -139,20 +141,23 @@ def salm(f,
             eq_norm = np.linalg.norm(h_new)
         else:
             eq_norm = 0.0
+            mu_new = v
 
         # Termination criteria
-        grad_norm = np.linalg.norm(augmented_lagrangian_grad(x_new, u, v, pen))
+        grad_norm = np.linalg.norm(augmented_lagrangian_grad(x_new, lam_new, mu_new, pen))
         #print(grad_norm)
-        if grad_norm < tol and eq_norm < tol and ineq_norm < tol:
-            print(f"Converged in {k} iterations.")
+        if grad_norm < tol_grad and eq_norm < tol_cons and ineq_norm < tol_cons:
+            print(f"Success! Converged in {k} iterations.")
+            print("Gradient of augmented Lagrangian: ",grad_norm)
+            print(f"Norm of inequality constraints: {ineq_norm}, equality constraints: {eq_norm}.")
             return x_new
         # Penalty update
         if ineq_norm > tau*previous_ineq_norm or eq_norm > tau*previous_eq_norm:
             pen = np.minimum(gamma * pen,pen_max)
-
+        #print(pen)
         # set up the constraint norms for the next loop
         previous_ineq_norm = ineq_norm
         previous_eq_norm = eq_norm
         x=x_new
-
-    return 0
+    print("Failure")
+    return x
