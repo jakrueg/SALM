@@ -3,6 +3,8 @@ import numpy as np
 import scipy.optimize as opt
 import pandas_datareader.data as web
 import warnings
+
+import SALM_PANOC
 import proxGenerator
 warnings.simplefilter(action="ignore", category=FutureWarning)
 
@@ -28,10 +30,10 @@ def generate_portfolio_famafrench():
 
 #phi_desc = "l0"
 phi_desc = "l0_tol"
-#phi_desc = "0"
+#phi_desc = "l0_scaled"
 #phi_desc = "l1"
 #n = 25
-tol_grad = 1e-2
+tol_grad = 1e-4
 tol_cons =1e-6
 Sigma, mu = generate_portfolio_famafrench()
 n = len(mu)
@@ -106,7 +108,15 @@ print(f"Non-zero (over threshold):{np.count_nonzero((np.abs(result)>tol_grad))} 
 print("Return:", mu @ result)
 print("Budget:", np.sum(result))
 
-
+#"""
+result = SALM_PANOC.salm(f, phi=proxGenerator.get_phi(phi_desc), phi_prox=proxGenerator.make_panoc_prox(phi_desc), x0=x0, h=[h], g=g, f_grad=f_grad, jac_h=[jac_h], jac_g=jac_g,
+                   tol_grad=tol_grad,tol_cons=tol_cons, maxiter=200)
+print("Optimized solution (SALM-PANOC+):\n", result)
+print("Objective:", f(result))
+print(f"Non-zero (over threshold):{np.count_nonzero((np.abs(result)>tol_grad))} of {n}")
+print("Return:", mu @ result)
+print("Budget:", np.sum(result))
+#"""
 def g_return(x):
     return np.dot(mu, x) - rho
 

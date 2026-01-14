@@ -110,6 +110,7 @@ def salm(f,
     previous_eq_norm = np.inf
     u = np.clip(lam,0.0,lam_max)
     v = np.clip(mu,-mu_max,mu_max)
+    previous_aug_lag_grad = augmented_lagrangian_grad(x0, u, v, pen)
 
     for k in range(maxiter):
         # define inner function for solution
@@ -144,11 +145,15 @@ def salm(f,
             mu_new = v
 
         # Termination criteria
-        grad_norm = np.linalg.norm(augmented_lagrangian_grad(x_new, lam_new, mu_new, pen))
-        #print(grad_norm)
-        if grad_norm < tol_grad and eq_norm < tol_cons and ineq_norm < tol_cons:
+        # grad_norm = np.linalg.norm(augmented_lagrangian_grad(x_new, lam_new, mu_new, pen))
+        scale = 1.0
+        new_aug_lag_grad = augmented_lagrangian_grad(x_new, u, v, pen)
+        norm_expression = new_aug_lag_grad - previous_aug_lag_grad + scale * (
+                     x - x_new)
+        # print(grad_norm)
+        if np.linalg.norm(norm_expression, np.inf) < tol_grad and k > 2:
             print(f"Success! Converged in {k} iterations.")
-            print("Gradient of augmented Lagrangian: ",grad_norm)
+            #print("Norm expression ", norm_expression)
             print(f"Norm of inequality constraints: {ineq_norm}, equality constraints: {eq_norm}.")
             return x_new
         # Penalty update
@@ -159,5 +164,6 @@ def salm(f,
         previous_ineq_norm = ineq_norm
         previous_eq_norm = eq_norm
         x=x_new
+        previous_aug_lag_grad = new_aug_lag_grad
     print("Failure")
     return x

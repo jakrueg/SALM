@@ -1,7 +1,7 @@
 import numpy as np
 
-regu = 1/25
-tol = 1e-3
+regu = 1/30
+tol = 1e-6
 
 def get_phi(desc):
     match desc:
@@ -10,7 +10,7 @@ def get_phi(desc):
         case "l0":
             return lambda v: np.count_nonzero(v)
         case "l0_scaled":
-            return lambda v: np.count_nonzero(v)*regu
+            return lambda v: np.count_nonzero((v>tol))*regu
         case "l0_tol":
             return lambda v: np.count_nonzero((v>tol))
         case _:
@@ -29,3 +29,18 @@ def get_phi_prox(desc):
             return lambda v, alpha: v * (v**2 > 2 * alpha*regu)
         case _:
             return lambda v,alpha: v
+
+def make_panoc_prox(desc):
+    """
+    Returns a function prox(y, gamma) -> (z, g(z))
+    compatible with PANOC+.
+    """
+    phi = get_phi(desc)
+    phi_prox = get_phi_prox(desc)
+
+    def prox(y, gamma):
+        z = phi_prox(y, gamma)
+        g_z = phi(z)
+        return z, g_z
+
+    return prox
