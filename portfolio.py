@@ -4,7 +4,7 @@ import scipy.optimize as opt
 import pandas_datareader.data as web
 import warnings
 import proxGenerator
-#warnings.simplefilter(action="ignore", category=FutureWarning)
+warnings.simplefilter(action="ignore", category=FutureWarning)
 
 
 # Random Portfolio Generation
@@ -100,7 +100,7 @@ x0 = np.ones(n) / n
 
 result = SALM.salm(f, phi=proxGenerator.get_phi(phi_desc), phi_prox=proxGenerator.get_phi_prox(phi_desc), x0=x0, h=[h], g=g, f_grad=f_grad, jac_h=[jac_h], jac_g=jac_g,
                    tol_grad=tol_grad,tol_cons=tol_cons, maxiter=200)
-print("Optimized solution (SALM):", result)
+print("Optimized solution (SALM):\n", result)
 print("Objective:", f(result))
 print(f"Non-zero (over threshold):{np.count_nonzero((np.abs(result)>tol_grad))} of {n}")
 print("Return:", mu @ result)
@@ -139,7 +139,7 @@ result2 = opt.minimize(fun=f,
                            "gtol": 1e-8
                        })
 
-print("Solution:", result2.x)
+print("Solution (Trust Region):\n", result2.x)
 print("Objective:", result2.fun)
 print("Return:", mu @ result2.x)
 print("Budget:", np.sum(result2.x))
