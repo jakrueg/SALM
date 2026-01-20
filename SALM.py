@@ -25,11 +25,18 @@ def salm(f,
 ):
     # Initialization
     x = np.asarray(x0,dtype=float)
+    print(f(x))
     g = g or []
     h = h or []
     n = x.size
-    m = len(g)
-    p = len(h)
+    if callable(g):
+        m=len(g(x0))
+    else:
+        m = len(g)
+    if callable(h):
+        p=len(h(x0))
+    else:
+        p = len(h)
     # initialize multipliers
     if lam0 is None:
         lam = np.zeros(m)
@@ -44,6 +51,8 @@ def salm(f,
 
     # returns evaluation vector of the equality constraints
     def eval_h(x_value):
+        if callable(h):
+            return np.atleast_1d(h(x_value))
         if p<1:
             return []
         l = [h_i(x_value) for h_i in h]
@@ -51,6 +60,8 @@ def salm(f,
 
     # returns evaluation vector of the inequality constraints
     def eval_g(x_value):
+        if callable(g):
+            return np.atleast_1d(g(x_value))
         if m<1:
             return []
         return np.asarray([g_i(x_value) for g_i in g])
@@ -151,7 +162,7 @@ def salm(f,
         norm_expression = new_aug_lag_grad - previous_aug_lag_grad + scale * (
                      x - x_new)
         # print(grad_norm)
-        if np.linalg.norm(norm_expression, np.inf) < tol_grad and k > 2:
+        if np.linalg.norm(norm_expression, np.inf) < tol_grad:# and k > 2:
             print(f"Success! Converged in {k} iterations.")
             #print("Norm expression ", norm_expression)
             print(f"Norm of inequality constraints: {ineq_norm}, equality constraints: {eq_norm}.")

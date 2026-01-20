@@ -1,7 +1,10 @@
 import SALM
 import numpy as np
 import scipy.optimize as opt
-import pandas_datareader.data as web
+import pandas as pd
+import zipfile
+import io
+import requests
 import warnings
 
 import SALM_PANOC
@@ -19,10 +22,24 @@ def generate_portfolio_random(n, seed=0):
 
 
 def generate_portfolio_famafrench():
-    industries = web.DataReader(
-        "30_Industry_Portfolios",
-        "famafrench"
-    )[0] / 100.0
+    url = "https://mba.tuck.dartmouth.edu/pages/faculty/ken.french/ftp/30_Industry_Portfolios_CSV.zip"
+
+    r = requests.get(url)
+    z = zipfile.ZipFile(io.BytesIO(r.content))
+
+    df = pd.read_csv(
+        z.open(z.namelist()[0]),
+        skiprows=11,
+        index_col=0
+    )
+
+    # Force index to string, then keep only YYYYMM rows
+    df = df[df.index.astype(str).str.match(r"^\d{6}$")]
+
+    # Convert to datetime
+    df.index = pd.to_datetime(df.index, format="%Y%m")
+
+    industries = df.apply(pd.to_numeric) / 100.0
     returns = industries
     Sigma_ret = returns.cov().values
     mu_ret = returns.mean().values
@@ -35,9 +52,10 @@ phi_desc = "l0_tol"
 #n = 25
 tol_grad = 1e-4
 tol_cons =1e-6
-Sigma, mu = generate_portfolio_famafrench()
-n = len(mu)
-#Sigma, mu = generate_portfolio_random(n)
+#Sigma, mu = generate_portfolio_famafrench()
+#n = len(mu)
+n = 25
+Sigma, mu = generate_portfolio_random(n)
 rho = 1e-3
 
 regu = 1/n
