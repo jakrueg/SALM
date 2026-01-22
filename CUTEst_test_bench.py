@@ -4,9 +4,12 @@ import numpy as np
 import SALM
 import proxGenerator
 import scipy.optimize as opt
+import panoc_plus
 
 
-# Find unconstrained, variable-dimension problems
+unconstrained_probs = pycutest.find_problems(objective="quadratic", constraints="unconstrained")
+
+
 linear_probs = pycutest.find_problems(objective='linear', constraints='linear quadratic general')
 quadratic_probs = pycutest.find_problems(objective='quadratic', constraints='linear quadratic general')
 sum_of_squares_probs = pycutest.find_problems(objective='sum of squares', constraints='linear quadratic general')
@@ -16,16 +19,19 @@ print(f"Linear {len(linear_probs)}")
 print(f"Quadratic {len(quadratic_probs)}")
 print(f"Sum of squares {len(sum_of_squares_probs)}")
 print(f"Other {len(other_probs)}")
-
-print(linear_probs[:10])
-
-prob = pycutest.import_problem('A4X12')
+print(f"Unconstrained {len(unconstrained_probs)}")
 
 
-mp = len(prob.is_eq_cons)
-p = sum(prob.is_eq_cons)
-m = sum(1-prob.is_eq_cons)
-print(f"{mp} constraints with {m} inequality and {p} equality")
+#print(linear_probs[:10])
+print(unconstrained_probs[:10])
+
+prob = pycutest.import_problem('TESTQUAD')
+
+
+#mp = len(prob.is_eq_cons)
+#p = sum(prob.is_eq_cons)
+#m = sum(1-prob.is_eq_cons)
+#print(f"{mp} constraints with {m} inequality and {p} equality")
 #[eq_start, eq_end, ineq_start, ineq_end] =   [0,p,p,mp] #if prob.eq_cons_first else [m,mp,0,m]
 
 
@@ -43,6 +49,18 @@ def f(x):
 def f_grad(x):
     return prob.grad(x)
 
+result1 = panoc_plus.panoc_plus(f,f_grad,proxGenerator.make_panoc_prox(""),prob.x0)
+
+result2 = opt.minimize(fun=f,
+                       x0=prob.x0,
+                       jac=f_grad,
+                       options={
+                           # "verbose": 3,
+                           "gtol": 1e-8
+                       })
+
+
+"""
 
 def g(x):
     return prob.cons(x)[~prob.is_eq_cons]
@@ -92,4 +110,4 @@ result = SALM.salm(f=f, phi=proxGenerator.get_phi(desc), phi_prox=proxGenerator.
 print("Optimized solution (SALM):\n", result)
 print("Objective (SALM):\n", prob.obj(result))
 
-
+"""

@@ -10,6 +10,7 @@
 
 import numpy as np
 from dataclasses import dataclass
+import LBFGS
 
 
 # ============================================================
@@ -26,7 +27,7 @@ class OptimizeResult:
     residual_norm: float
     gamma: float
 
-
+"""
 # ============================================================
 # L-BFGS inverse Jacobian (for residuals)
 # ============================================================
@@ -71,7 +72,7 @@ class LBFGSInverseJacobian:
             b = rho * np.dot(y, r)
             r += s * (a - b)
         return r
-
+"""
 
 # ============================================================
 # PANOC+ internal state
@@ -153,10 +154,10 @@ def panoc_plus(
     if A is None:
         A = np.eye(len(x0))
 
-    if gamma is None:
-        raise ValueError("PANOC+ requires an initial gamma")
+    #if gamma is None:
+    #    raise ValueError("PANOC+ requires an initial gamma")
 
-    lbfgs = LBFGSInverseJacobian(len(x0), lbfgs_memory)
+    lbfgs = LBFGS.LBFGSOperator(lbfgs_memory,x0)
     state = _PANOCState(x0, A, gamma, lbfgs, fun, grad, prox)
 
     for k in range(1, maxiter + 1):
@@ -173,7 +174,7 @@ def panoc_plus(
 
         while True:
             if can_update_direction:
-                state.d = -lbfgs.apply(state.res_prev)
+                state.d = -1.0 * (lbfgs @ state.res_prev)
                 state.x = state.x_prev + state.d
                 tau = 1.0
                 backtracks = 0
