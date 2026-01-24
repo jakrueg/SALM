@@ -78,21 +78,40 @@ class LBFGSInverseJacobian:
 # PANOC+ internal state
 # ============================================================
 class _PANOCState:
-    def __init__(self, x0, A, gamma, lbfgs, f, grad_f, prox_g):
-        self.x = x0.copy()
-        self.A = A
+    def __init__(self,
+                 x0,
+                 Ax,
+                 f_Ax,
+                 grad_f_Ax,
+                 At_grad_f_Ax,
+                 gamma,
+                 #lbfgs,
+                 y,
+                 z,
+                 g_z,
+                 res,
+                 H):
+        self.x = x0
+        self.Ax = Ax
+        self.f_Ax = f_Ax
+        self.grad_f_Ax = grad_f_Ax
+        self.At_grad_f_Ax = At_grad_f_Ax
         self.gamma = gamma
-        self.lbfgs = lbfgs
-        self.f = f
-        self.grad_f = grad_f
-        self.prox_g = prox_g
+        #self.lbfgs = lbfgs
+        self.y = y
+        self.z = z
+        self.g_z = g_z
+        self.res = res
+        self.H = H
 
-        self.x_prev = self.x.copy()
+        self.tau = 0.0
+        self.x_prev = np.zeros_like(self.x)
         self.res_prev = np.zeros_like(self.x)
         self.d = np.zeros_like(self.x)
-
-        self._update_forward_backward()
-
+        self.Az = np.zeros_like(self.Ax)
+        self.grad_f_Az = np.zeros_like(self.Ax)
+        self.At_grad_f_Az = np.zeros_like(self.x)
+"""
     def _update_forward_backward(self):
         Ax = self.A @ self.x
         self.f_Ax = self.f(Ax)
@@ -105,7 +124,8 @@ class _PANOCState:
         Az = self.A @ self.z
         self.grad_f_Az = self.grad_f(Az)
         self.At_grad_f_Az = self.A.T @ self.grad_f_Az
-
+        self.Az = Az
+"""
 
 # ============================================================
 # Forward–Backward Envelope model
@@ -116,6 +136,101 @@ def _fbe_model(state, alpha):
         - np.dot(state.At_grad_f_Ax, state.res)
         + (alpha / (2.0 * state.gamma)) * np.linalg.norm(state.res) ** 2
     )
+
+# ============================================================
+# Some helper functions for the initialization
+# ============================================================
+
+def f_model(f_x,grad_f_x,res,L):
+    return f_x- np.dot(grad_f_x, res)+ 0.5*L*np.linalg.norm(res)**2
+
+def lower_bound_smoothness_constant_inner(f,grad_f,A,x,grad_f_Ax):
+    xeps = x + 1
+    f_Axeps = f(A @ xeps)
+    grad_f_Axeps = grad_f(A @ xeps)
+    return np.linalg.norm(A.T @ (grad_f_Axeps-grad_f_Ax))/np.sqrt(len(x))
+
+def lower_bound_smoothness_constant(f,grad_f,A,x):
+    Ax = A @ x
+    grad_f_Ax = grad_f(Ax)
+    return lower_bound_smoothness_constant_inner(f,grad_f,A,x, grad_f_Ax)
+
+def backtrack_stepsize_inner(gamma,
+                       f,
+                       grad_f,
+                       A,
+                       phi_prox,
+                       x,
+                       f_Ax,
+                       At_grad_f_Ax,
+                       y,
+                       z,
+                       g_z,
+                       res,
+                       Az,
+                       grad_f_Az = None,
+                       alpha = 1.0,
+                       minimum_gamma = 1e-7,
+                       reduce_gamma = 0.5
+):
+    f_Az_upp = f_model(f_Ax,At_grad_f_Ax,res,alpha/gamma)
+    Az = A @ z
+    f_Az = f(Az)
+    grad_f_Az_tmp = grad_f(Az)
+    tol = 10*np.finfo(float).eps * (1+np.abs(f_Az))
+    while f_Az > f_Az_upp + tol and gamma >=minimum_gamma:
+        gamma *= reduce_gamma
+        y = x -gamma*At_grad_f_Ax
+        z, g_z = phi_prox(y,gamma)
+        res = x-z
+        f_Az_upp = f_model(f_Ax,At_grad_f_Ax,res,alpha/gamma)
+        Az = A @ z
+        f_Az = f(Az)
+        grad_f_Az_tmp = grad_f(Az)
+        tol = 10*np.finfo(float).eps * (1+np.abs(f_Az))
+    if not grad_f_Az is None:
+        grad_f_Az = grad_f_Az_tmp
+    if gamma < minimum_gamma:
+        raise ValueError("Stepsize gamma became to small!")
+    return gamma, g_z,f_Az,f_Az_upp
+
+def backtrack_stepsize(gamma,
+                       f,
+                       grad_f,
+                       A,
+                       phi_prox,
+                       x,
+                       alpha = 1.0,
+                       minimum_gamma = 1e-7,
+                       reduce_gamma = 0.5
+                       ):
+    Ax = A @ x
+    f_Ax = f(Ax)
+    grad_f_Ax = grad_f(Ax)
+    At_grad_f_Ax = A.T @ grad_f_Ax
+    y = x -gamma*At_grad_f_Ax
+    z, g_z = phi_prox(y,gamma)
+    return backtrack_stepsize_inner(gamma=gamma,
+                              f=f,
+                              grad_f=grad_f,
+                              A=A,
+                              phi_prox=phi_prox,
+                              x=x,
+                              f_Ax=f_Ax,
+                              At_grad_f_Ax=At_grad_f_Ax,
+                              y=y,
+                              z=z,
+                              g_z=g_z,
+                              res=x-z,
+                              Az=Ax,
+                              grad_f_Az=grad_f_Ax,
+                              alpha=alpha,
+                              minimum_gamma=minimum_gamma,
+                              reduce_gamma=reduce_gamma)
+# ============================================================
+# Helper functions for the iterations
+# ============================================================
+
 
 
 # ============================================================
@@ -129,7 +244,7 @@ def panoc_plus(
     A=None,
     gamma=None,
     maxiter=1000,
-    tol=1e-8,
+    tol_stopping=1e-6,
     alpha=0.95,
     beta=0.5,
     lbfgs_memory=5,
@@ -154,55 +269,127 @@ def panoc_plus(
     if A is None:
         A = np.eye(len(x0))
 
-    #if gamma is None:
-    #    raise ValueError("PANOC+ requires an initial gamma")
+    x = np.copy(x0)
+    Ax = A @ x
+    f_Ax = fun(Ax)
+    grad_f_Ax = grad(Ax)
 
-    lbfgs = LBFGS.LBFGSOperator(lbfgs_memory,x0)
-    state = _PANOCState(x0, A, gamma, lbfgs, fun, grad, prox)
+    if gamma is None:
+        gamma = alpha / lower_bound_smoothness_constant(f=fun,grad_f=grad,A=A,x=x0)
+
+    At_grad_f_Ax = A.T @ grad_f_Ax
+    y = x - gamma * At_grad_f_Ax
+    z, g_z = prox(y,gamma)
+
+    lbfgs = LBFGS.LBFGSOperator(lbfgs_memory,x)
+    state = _PANOCState(x0 = x,
+                        Ax=Ax,
+                        f_Ax = f_Ax,
+                        grad_f_Ax = grad_f_Ax,
+                        At_grad_f_Ax = At_grad_f_Ax,
+                        gamma = gamma,
+                        y = y,
+                        z = z,
+                        g_z = g_z,
+                        res = x-z,
+                        H = lbfgs
+                        )
+
+    if gamma is None or adaptive is True:
+        state.gamma, state.g_z , _ , _ = backtrack_stepsize_inner(
+            gamma = state.gamma,
+            f= fun,
+            grad_f= grad,
+            A=A,
+            phi_prox=prox,
+            x= state.x,
+            f_Ax= state.f_Ax,
+            At_grad_f_Ax= state.At_grad_f_Ax,
+            y= state.y,
+            z =state.z,
+            g_z =state.g_z,
+            res =state.res,
+            Az =state.Az,
+            grad_f_Az= state.grad_f_Az,
+            alpha = alpha,
+            minimum_gamma = min_gamma
+        )
+    else:
+        state.Az = A @ state.z
+        grad_f_Az = grad(state.z)
+        state.grad_f_Az = grad_f_Az
+
+    state.At_grad_f_Az = A.T @ state.grad_f_Az
 
     for k in range(1, maxiter + 1):
+        # store iterate and residual for metric update later on
         state.x_prev[:] = state.x
         state.res_prev[:] = state.res
 
+        # compute FBE
         FBE_x = _fbe_model(state, alpha) + state.g_z
-        sigma = beta * (0.5 / state.gamma) * (1 - alpha)
-        threshold = FBE_x - sigma * np.linalg.norm(state.res) ** 2
 
-        tau = 1.0
+        sigma = beta * (0.5 / state.gamma) * (1 - alpha)
+        tol = 10*np.finfo(float).eps * (1+np.abs(FBE_x))
+        threshold = FBE_x - sigma * np.linalg.norm(state.res) ** 2+tol
+
         can_update_direction = True
         backtracks = 0
 
         while True:
             if can_update_direction:
-                state.d = -1.0 * (lbfgs @ state.res_prev)
+                # compute direction - is it correct?
+                state.d = -1.0 * (state.H @ state.res_prev)
+                state.tau = 1.0
                 state.x = state.x_prev + state.d
-                tau = 1.0
                 backtracks = 0
             else:
                 state.x = (
-                    (1 - tau) * (state.x_prev - state.res_prev)
-                    + tau * (state.x_prev + state.d)
+                    (1 - state.tau) * (state.x_prev - state.res_prev)
+                    + state.tau * (state.x_prev + state.d)
                 )
                 backtracks += 1
 
-            state._update_forward_backward()
-            fbe_new = _fbe_model(state, alpha) + state.g_z
+            state.Ax = A @ state.x
+            state.f_Ax = fun(state.Ax)
+            state.grad_f_Ax = grad(state.f_Ax)
+            state.At_grad_f_Ax = A.T @ state.grad_f_Ax
 
-            if adaptive:
-                if fbe_new > FBE_x and state.gamma >= min_gamma:
+            state.y = state.x -state.gamma * state.At_grad_f_Ax
+            state.z, state.g_z = prox(state.y,state.gamma)
+            state.res = state.x-state.z
+
+            f_Az_upp = f_model(state.f_Ax,state.At_grad_f_Ax,state.res,alpha/state.gamma)
+
+            state.Az = A @ state.z
+            f_Az = fun(state.Az)
+            grad_f_Az = grad(state.Az)
+            state.grad_f_Az = grad_f_Az
+
+            if adaptive or gamma is None:
+                tol = 10 * np.finfo(float).eps * (1 + np.abs(f_Az))
+                if f_Az > f_Az_upp + tol and state.gamma >= min_gamma:
                     state.gamma *= 0.5
-                    lbfgs.reset()
+                    if state.gamma < min_gamma:
+                        #print(k)
+                        print(f_Az)
+                        print(f_Az_upp)
+                        raise ValueError("Stepsize gamma became to small!")
+                    state.H.reset()
                     can_update_direction = True
                     continue
+            state.At_grad_f_Az = A.T @ state.grad_f_Az
 
-            if fbe_new <= threshold or backtracks >= max_backtracks:
+            FBE_x_new = f_Az_upp + state.g_z
+            if FBE_x_new <= threshold or backtracks >= max_backtracks:
                 break
-
-            tau = 0.0 if backtracks >= max_backtracks - 1 else tau / 2.0
+            state.tau = 0.0 if backtracks >= max_backtracks - 1 else state.tau / 2.0
             can_update_direction = False
 
         # L-BFGS update
-        lbfgs.update(state.x - state.x_prev, state.res - state.res_prev)
+        state.x_prev = state.x -state.x_prev
+        state.res_prev = state.res-state.res.prev
+        state.H.update(state.x_prev, state.res_prev)
 
         # stopping criterion (Bazinga.jl default)
         crit = np.linalg.norm(
@@ -214,7 +401,7 @@ def panoc_plus(
         if verbose:
             print(f"{k:4d} | res={crit:.2e} | gamma={state.gamma:.2e}")
 
-        if crit <= tol:
+        if crit <= tol_stopping:
             return OptimizeResult(
                 x=state.z,
                 success=True,

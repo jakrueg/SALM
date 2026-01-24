@@ -39,7 +39,7 @@ res = panoc_plus(
     prox=prox_l1,
     x0=np.zeros(n),
     A=A,
-    gamma=gamma,
+    #gamma=gamma,
     verbose=True,
 )
 
