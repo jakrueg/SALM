@@ -6,13 +6,15 @@ from sklearn.linear_model import Lasso
 
 
 # Problem dimensions
-np.random.seed(0)
+np.random.seed(1)
 m, n = 200, 100
 
 A = np.random.randn(m, n) / np.sqrt(m)
 x_true = np.zeros(n)
 x_true[:10] = np.random.randn(10)   # sparse signal
 b = A @ x_true + 0.01 * np.random.randn(m)
+
+print(x_true)
 
 lam = 0.1
 
@@ -31,6 +33,7 @@ def prox_l1(y, gamma):
 # Lipschitz constant
 L = np.linalg.norm(A, 2) ** 2
 gamma = 0.95 / L
+
 
 # Run PANOC+
 res = panoc_plus(

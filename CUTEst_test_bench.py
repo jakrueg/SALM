@@ -2,6 +2,7 @@
 import pycutest
 import numpy as np
 import SALM
+import SALM_PANOC
 import proxGenerator
 import scipy.optimize as opt
 import panoc_plus
@@ -22,10 +23,10 @@ print(f"Other {len(other_probs)}")
 print(f"Unconstrained {len(unconstrained_probs)}")
 
 
-#print(linear_probs[:10])
-print(unconstrained_probs[:10])
+print(linear_probs[:10])
+#print(unconstrained_probs[:20])
 
-prob = pycutest.import_problem('TESTQUAD')
+prob = pycutest.import_problem('SIPOW2M')
 
 
 #mp = len(prob.is_eq_cons)
@@ -48,19 +49,27 @@ def f(x):
 
 def f_grad(x):
     return prob.grad(x)
-
+"""
 result1 = panoc_plus.panoc_plus(f,f_grad,proxGenerator.make_panoc_prox(""),prob.x0)
+
+print(result1.x)
+print(prob.obj(result1.x))
+print(np.linalg.norm(prob.grad(result1.x)))
+"""
 
 result2 = opt.minimize(fun=f,
                        x0=prob.x0,
                        jac=f_grad,
                        options={
                            # "verbose": 3,
-                           "gtol": 1e-8
+                           "gtol": 1e-6
                        })
 
+print(result2.x)
+print(prob.obj(result2.x))
+print(np.linalg.norm(prob.grad(result2.x)))
 
-"""
+
 
 def g(x):
     return prob.cons(x)[~prob.is_eq_cons]
@@ -105,9 +114,9 @@ print("Objective (Trust Region):\n", prob.obj(result2.x))
 
 x0 = result2.x
 # Call the solver
-result = SALM.salm(f=f, phi=proxGenerator.get_phi(desc), phi_prox=proxGenerator.get_phi_prox(desc),x0 = x0, g=g, h=h, f_grad=f_grad, jac_g=jac_g,jac_h=jac_h, tol_grad=1e-3,
+result = SALM_PANOC.salm(f=f, phi=proxGenerator.get_phi(desc), phi_prox=proxGenerator.make_panoc_prox(desc),x0 = x0, g=g, h=h, f_grad=f_grad, jac_g=jac_g,jac_h=jac_h, tol_grad=1e-3,
                maxiter=200)
 print("Optimized solution (SALM):\n", result)
 print("Objective (SALM):\n", prob.obj(result))
 
-"""
+

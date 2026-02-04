@@ -178,6 +178,9 @@ def backtrack_stepsize_inner(gamma,
     f_Az = f(Az)
     grad_f_Az_tmp = grad_f(Az)
     tol = 10*np.finfo(float).eps * (1+np.abs(f_Az))
+    #print(f"tol = {tol}")
+    #print(f"Initial backtracking: f(Az) = {f_Az}, upper bound = {f_Az_upp}, gamma = {gamma}")
+    num_iters = 0
     while f_Az > f_Az_upp + tol and gamma >=minimum_gamma:
         gamma *= reduce_gamma
         y = x -gamma*At_grad_f_Ax
@@ -188,9 +191,11 @@ def backtrack_stepsize_inner(gamma,
         f_Az = f(Az)
         grad_f_Az_tmp = grad_f(Az)
         tol = 10*np.finfo(float).eps * (1+np.abs(f_Az))
+        num_iters += 1
     if not grad_f_Az is None:
         grad_f_Az = grad_f_Az_tmp
     if gamma < minimum_gamma:
+        print(f"num_iters = {num_iters}")
         raise ValueError("Stepsize gamma became to small!")
     return gamma, g_z,f_Az,f_Az_upp
 
@@ -352,7 +357,7 @@ def panoc_plus(
 
             state.Ax = A @ state.x
             state.f_Ax = fun(state.Ax)
-            state.grad_f_Ax = grad(state.f_Ax)
+            state.grad_f_Ax = grad(state.Ax)
             state.At_grad_f_Ax = A.T @ state.grad_f_Ax
 
             state.y = state.x -state.gamma * state.At_grad_f_Ax
@@ -372,8 +377,8 @@ def panoc_plus(
                     state.gamma *= 0.5
                     if state.gamma < min_gamma:
                         #print(k)
-                        print(f_Az)
-                        print(f_Az_upp)
+                        #print(f_Az)
+                        #print(f_Az_upp)
                         raise ValueError("Stepsize gamma became to small!")
                     state.H.reset()
                     can_update_direction = True
@@ -388,7 +393,7 @@ def panoc_plus(
 
         # L-BFGS update
         state.x_prev = state.x -state.x_prev
-        state.res_prev = state.res-state.res.prev
+        state.res_prev = state.res-state.res_prev
         state.H.update(state.x_prev, state.res_prev)
 
         # stopping criterion (Bazinga.jl default)
