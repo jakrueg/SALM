@@ -4,5 +4,7 @@ To Do:
 
 - maybe restructure the proximal function generations (as a class? -> cf. PyProximal)
 
+- Tolerance reduction
+
 - CUTEst test environment
 - Performance Profiles
