@@ -1,0 +1,8 @@
+To Do:
+
+- Implement MCP
+
+- maybe restructure the proximal function generations (as a class? -> cf. PyProximal)
+
+- CUTEst test environment
+- Performance Profiles
