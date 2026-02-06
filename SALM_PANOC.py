@@ -9,7 +9,7 @@ def salm(f,
     g = None,
     h = None,
     f_grad=None,
-    phi_prox=None,
+    #phi_prox=None,
     jac_g=None,
     jac_h=None,
     pen0 = 1,
@@ -119,8 +119,8 @@ def salm(f,
             return augmented_lagrangian(x_value,u,v,pen)
         def inner_jac(x_value):
             return augmented_lagrangian_grad(x_value, u, v, pen)
-        if phi_prox is not None:
-            res = panoc_plus.panoc_plus(fun=inner_fun,grad = inner_jac,prox=phi_prox,x0=x,verbose=False, tol_stopping=1e-3, A = np.eye(n), maxiter=20)
+        if phi.prox is not None:
+            res = panoc_plus.panoc_plus(fun=inner_fun, grad= inner_jac, phi = phi, x0=x, verbose=False, tol=1e-3, A = np.eye(n), maxiter=20)
             #print(res.x)
             #print(res.nit)
             #print(res.success)

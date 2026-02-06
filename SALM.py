@@ -1,5 +1,6 @@
 import numpy as np
 import copt
+import panoc_plus
 from scipy.optimize import minimize
 
 
@@ -9,7 +10,7 @@ def salm(f,
          g=None,
          h=None,
          f_grad=None,
-         phi_prox=None,
+         #phi_prox=None,
          jac_g=None,
          jac_h=None,
          pen0=1,
@@ -22,11 +23,12 @@ def salm(f,
          tol_grad=1e-3,
          tol_cons=1e-6,
          maxiter=200,
-         tau=0.5
+         tau=0.5,
+         subsolver = 'ProxGrad',
          ):
     # Initialization
     x = np.asarray(x0, dtype=float)
-    print(f(x))
+    #print(f(x))
     g = g or []
     h = h or []
     n = x.size
@@ -130,9 +132,12 @@ def salm(f,
         def inner_jac(x_value):
             return augmented_lagrangian_grad(x_value, u, v, pen)
 
-        if phi_prox is not None:
-            res = copt.minimize_proximal_gradient(fun=inner_fun, jac=inner_jac, prox=phi_prox, x0=x, verbose=2,
-                                                  tol=1e-4)
+        if phi.prox is not None:
+            if subsolver == 'PANOC_plus':
+                res = panoc_plus.panoc_plus(fun=inner_fun, grad=inner_jac, phi=phi, x0=x, verbose=False, tol=1e-4,
+                                            A=np.eye(n), maxiter=200)
+            else:
+                res = copt.minimize_proximal_gradient(fun=inner_fun, jac=inner_jac, prox=phi.prox, x0=x, verbose=2, tol=1e-4)
             #print(res.x)
             #print(res.nit)
             #print(res.success)

@@ -1,12 +1,13 @@
 import numpy as np
 
 from panoc_plus import panoc_plus
+import pyproximal
 from sklearn.linear_model import Lasso
 
 
 
 # Problem dimensions
-np.random.seed(1)
+np.random.seed(0)
 m, n = 200, 100
 
 A = np.random.randn(m, n) / np.sqrt(m)
@@ -34,12 +35,13 @@ def prox_l1(y, gamma):
 L = np.linalg.norm(A, 2) ** 2
 gamma = 0.95 / L
 
+phi = pyproximal.L1(sigma=lam)
 
 # Run PANOC+
 res = panoc_plus(
     fun=f,
     grad=grad_f,
-    prox=prox_l1,
+    phi = phi,
     x0=np.zeros(n),
     A=A,
     #gamma=gamma,

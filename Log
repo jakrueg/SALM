@@ -1,10 +1,10 @@
 To Do:
 
-- Implement MCP
-
-- maybe restructure the proximal function generations (as a class? -> cf. PyProximal)
-
 - Tolerance reduction
 
 - CUTEst test environment
 - Performance Profiles
+
+Notes:
+
+SALM_PANOC and proxGenerator are deprecated as of now

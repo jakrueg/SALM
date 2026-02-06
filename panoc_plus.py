@@ -146,7 +146,7 @@ def f_model(f_x,grad_f_x,res,L):
 
 def lower_bound_smoothness_constant_inner(f,grad_f,A,x,grad_f_Ax):
     xeps = x + 1
-    f_Axeps = f(A @ xeps)
+    #f_Axeps = f(A @ xeps)
     grad_f_Axeps = grad_f(A @ xeps)
     return np.linalg.norm(A.T @ (grad_f_Axeps-grad_f_Ax))/np.sqrt(len(x))
 
@@ -159,7 +159,7 @@ def backtrack_stepsize_inner(gamma,
                        f,
                        grad_f,
                        A,
-                       phi_prox,
+                       phi,
                        x,
                        f_Ax,
                        At_grad_f_Ax,
@@ -177,20 +177,22 @@ def backtrack_stepsize_inner(gamma,
     Az = A @ z
     f_Az = f(Az)
     grad_f_Az_tmp = grad_f(Az)
-    tol = 10*np.finfo(float).eps * (1+np.abs(f_Az))
+    machine_tol = 10*np.finfo(float).eps * (1+np.abs(f_Az))
     #print(f"tol = {tol}")
     #print(f"Initial backtracking: f(Az) = {f_Az}, upper bound = {f_Az_upp}, gamma = {gamma}")
     num_iters = 0
-    while f_Az > f_Az_upp + tol and gamma >=minimum_gamma:
+    while f_Az > f_Az_upp + machine_tol and gamma >=minimum_gamma:
         gamma *= reduce_gamma
         y = x -gamma*At_grad_f_Ax
-        z, g_z = phi_prox(y,gamma)
+        z = phi.prox(y,gamma)
+        g_z = phi(z)
+        #z, g_z = phi_prox(y,gamma)
         res = x-z
         f_Az_upp = f_model(f_Ax,At_grad_f_Ax,res,alpha/gamma)
         Az = A @ z
         f_Az = f(Az)
         grad_f_Az_tmp = grad_f(Az)
-        tol = 10*np.finfo(float).eps * (1+np.abs(f_Az))
+        machine_tol = 10*np.finfo(float).eps * (1+np.abs(f_Az))
         num_iters += 1
     if not grad_f_Az is None:
         grad_f_Az = grad_f_Az_tmp
@@ -203,7 +205,7 @@ def backtrack_stepsize(gamma,
                        f,
                        grad_f,
                        A,
-                       phi_prox,
+                       phi,
                        x,
                        alpha = 1.0,
                        minimum_gamma = 1e-7,
@@ -214,12 +216,14 @@ def backtrack_stepsize(gamma,
     grad_f_Ax = grad_f(Ax)
     At_grad_f_Ax = A.T @ grad_f_Ax
     y = x -gamma*At_grad_f_Ax
-    z, g_z = phi_prox(y,gamma)
+    #z, g_z = phi_prox(y,gamma)
+    z = phi.prox(y,gamma)
+    g_z = phi(z)
     return backtrack_stepsize_inner(gamma=gamma,
                               f=f,
                               grad_f=grad_f,
                               A=A,
-                              phi_prox=phi_prox,
+                              phi=phi,
                               x=x,
                               f_Ax=f_Ax,
                               At_grad_f_Ax=At_grad_f_Ax,
@@ -243,13 +247,14 @@ def backtrack_stepsize(gamma,
 # ============================================================
 def panoc_plus(
     fun,
+    phi,
     grad,
-    prox,
+    #prox,
     x0,
     A=None,
     gamma=None,
     maxiter=1000,
-    tol_stopping=1e-6,
+    tol=1e-6,
     alpha=0.95,
     beta=0.5,
     lbfgs_memory=5,
@@ -264,8 +269,8 @@ def panoc_plus(
     Parameters (similar to scipy.optimize.minimize):
     ------------------------------------------------
     fun(x):          f(x)  (smooth part)
-    grad(x):         ∇f(x)
-    prox(y, gamma):  prox_{gamma g}(y) -> (z, g(z))
+    jac(x):         ∇f(x)
+    phi(x):         phi(x) (non-smooth part, has a proximal operator phi.prox)
     x0:              initial point
     A:               linear operator (default: identity)
     gamma:           stepsize (if None, must be adapted externally)
@@ -280,11 +285,13 @@ def panoc_plus(
     grad_f_Ax = grad(Ax)
 
     if gamma is None:
-        gamma = alpha / lower_bound_smoothness_constant(f=fun,grad_f=grad,A=A,x=x0)
+        gamma = alpha / lower_bound_smoothness_constant(f=fun, grad_f=grad, A=A, x=x0)
 
     At_grad_f_Ax = A.T @ grad_f_Ax
     y = x - gamma * At_grad_f_Ax
-    z, g_z = prox(y,gamma)
+    #z, g_z = phi_prox(y,gamma)
+    z = phi.prox(y,gamma)
+    g_z = phi(z)
 
     lbfgs = LBFGS.LBFGSOperator(lbfgs_memory,x)
     state = _PANOCState(x0 = x,
@@ -306,7 +313,7 @@ def panoc_plus(
             f= fun,
             grad_f= grad,
             A=A,
-            phi_prox=prox,
+            phi=phi,
             x= state.x,
             f_Ax= state.f_Ax,
             At_grad_f_Ax= state.At_grad_f_Ax,
@@ -335,8 +342,8 @@ def panoc_plus(
         FBE_x = _fbe_model(state, alpha) + state.g_z
 
         sigma = beta * (0.5 / state.gamma) * (1 - alpha)
-        tol = 10*np.finfo(float).eps * (1+np.abs(FBE_x))
-        threshold = FBE_x - sigma * np.linalg.norm(state.res) ** 2+tol
+        machine_tol = 10*np.finfo(float).eps * (1+np.abs(FBE_x))
+        threshold = FBE_x - sigma * np.linalg.norm(state.res) ** 2+machine_tol
 
         can_update_direction = True
         backtracks = 0
@@ -361,7 +368,9 @@ def panoc_plus(
             state.At_grad_f_Ax = A.T @ state.grad_f_Ax
 
             state.y = state.x -state.gamma * state.At_grad_f_Ax
-            state.z, state.g_z = prox(state.y,state.gamma)
+            #state.z, state.g_z = prox(state.y,state.gamma)
+            state.z = phi.prox(state.y,state.gamma)
+            state.g_z = phi(state.z)
             state.res = state.x-state.z
 
             f_Az_upp = f_model(state.f_Ax,state.At_grad_f_Ax,state.res,alpha/state.gamma)
@@ -372,8 +381,8 @@ def panoc_plus(
             state.grad_f_Az = grad_f_Az
 
             if adaptive or gamma is None:
-                tol = 10 * np.finfo(float).eps * (1 + np.abs(f_Az))
-                if f_Az > f_Az_upp + tol and state.gamma >= min_gamma:
+                machine_tol = 10 * np.finfo(float).eps * (1 + np.abs(f_Az))
+                if f_Az > f_Az_upp + machine_tol and state.gamma >= min_gamma:
                     state.gamma *= 0.5
                     if state.gamma < min_gamma:
                         #print(k)
@@ -406,7 +415,7 @@ def panoc_plus(
         if verbose:
             print(f"{k:4d} | res={crit:.2e} | gamma={state.gamma:.2e}")
 
-        if crit <= tol_stopping:
+        if crit <= tol:
             return OptimizeResult(
                 x=state.z,
                 success=True,

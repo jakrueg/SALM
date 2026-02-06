@@ -7,8 +7,11 @@ import io
 import requests
 import warnings
 
-import SALM_PANOC
-import proxGenerator
+import pyproximal
+import MCP
+
+#import SALM_PANOC
+#import proxGenerator
 warnings.simplefilter(action="ignore", category=FutureWarning)
 
 
@@ -46,15 +49,15 @@ def generate_portfolio_famafrench():
     return Sigma_ret, mu_ret
 
 #phi_desc = "l0"
-phi_desc = "l0_tol"
+#phi_desc = "l0_tol"
 #phi_desc = "l0_scaled"
 #phi_desc = "l1"
 #n = 25
-tol_grad = 1e-4
+tol_grad = 1e-3
 tol_cons =1e-6
 #Sigma, mu = generate_portfolio_famafrench()
 #n = len(mu)
-n = 25
+n = 40
 Sigma, mu = generate_portfolio_random(n)
 rho = 1e-3
 
@@ -86,6 +89,8 @@ def jac_g0(x):
 
 # l0 norm
 
+phi = pyproximal.L0(sigma =1.0)
+#phi = MCP.MCP(sigma = 0.1)
 
 g = [g0]
 jac_g = [jac_g0]
@@ -118,7 +123,7 @@ for i in range(n):
 
 x0 = np.ones(n) / n
 
-result = SALM.salm(f, phi=proxGenerator.get_phi(phi_desc), phi_prox=proxGenerator.get_phi_prox(phi_desc), x0=x0, h=[h], g=g, f_grad=f_grad, jac_h=[jac_h], jac_g=jac_g,
+result = SALM.salm(f, phi=phi, x0=x0, h=[h], g=g, f_grad=f_grad, jac_h=[jac_h], jac_g=jac_g,
                    tol_grad=tol_grad,tol_cons=tol_cons, maxiter=200)
 print("Optimized solution (SALM):\n", result)
 print("Objective:", f(result))
@@ -127,8 +132,11 @@ print("Return:", mu @ result)
 print("Budget:", np.sum(result))
 
 #"""
-result = SALM_PANOC.salm(f, phi=proxGenerator.get_phi(phi_desc), phi_prox=proxGenerator.make_panoc_prox(phi_desc), x0=x0, h=[h], g=g, f_grad=f_grad, jac_h=[jac_h], jac_g=jac_g,
-                   tol_grad=tol_grad,tol_cons=tol_cons, maxiter=200)
+
+result = SALM.salm(f, phi=phi, x0=x0, h=[h], g=g, f_grad=f_grad, jac_h=[jac_h], jac_g=jac_g,
+                   tol_grad=tol_grad,tol_cons=tol_cons, maxiter=200,subsolver='PANOC_plus')
+#result = SALM_PANOC.salm(f, phi=phi,  x0=x0, h=[h], g=g, f_grad=f_grad, jac_h=[jac_h], jac_g=jac_g,
+#                   tol_grad=tol_grad,tol_cons=tol_cons, maxiter=200)
 print("Optimized solution (SALM-PANOC+):\n", result)
 print("Objective:", f(result))
 print(f"Non-zero (over threshold):{np.count_nonzero((np.abs(result)>tol_grad))} of {n}")
