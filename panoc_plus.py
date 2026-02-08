@@ -148,6 +148,9 @@ def lower_bound_smoothness_constant_inner(f,grad_f,A,x,grad_f_Ax):
     xeps = x + 1
     #f_Axeps = f(A @ xeps)
     grad_f_Axeps = grad_f(A @ xeps)
+    #print(f"grad_f_Axeps = {grad_f_Axeps}")
+    #print(f"grad_f_Ax = {grad_f_Ax}")
+    #print(A @ xeps)
     return np.linalg.norm(A.T @ (grad_f_Axeps-grad_f_Ax))/np.sqrt(len(x))
 
 def lower_bound_smoothness_constant(f,grad_f,A,x):
@@ -286,6 +289,8 @@ def panoc_plus(
 
     if gamma is None:
         gamma = alpha / lower_bound_smoothness_constant(f=fun, grad_f=grad, A=A, x=x0)
+        #gamma = alpha* 1e-2
+        #print(f"gamma = {gamma}")
 
     At_grad_f_Ax = A.T @ grad_f_Ax
     y = x - gamma * At_grad_f_Ax

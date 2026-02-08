@@ -53,12 +53,13 @@ def generate_portfolio_famafrench():
 #phi_desc = "l0_scaled"
 #phi_desc = "l1"
 #n = 25
-tol_grad = 1e-3
+tol_grad = 1e-6
 tol_cons =1e-6
 #Sigma, mu = generate_portfolio_famafrench()
 #n = len(mu)
 n = 40
 Sigma, mu = generate_portfolio_random(n)
+#print(f"Sigma: {Sigma}")
 rho = 1e-3
 
 regu = 1/n
@@ -89,7 +90,7 @@ def jac_g0(x):
 
 # l0 norm
 
-phi = pyproximal.L0(sigma =1.0)
+phi = pyproximal.L1(sigma =1.0)
 #phi = MCP.MCP(sigma = 0.1)
 
 g = [g0]

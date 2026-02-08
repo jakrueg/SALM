@@ -124,6 +124,8 @@ def salm(f,
     v = np.clip(mu, -mu_max, mu_max)
     previous_aug_lag_grad = augmented_lagrangian_grad(x0, u, v, pen)
 
+    inner_it = 0
+
     for k in range(maxiter):
         # define inner function for solution
         def inner_fun(x_value):
@@ -141,6 +143,7 @@ def salm(f,
             #print(res.x)
             #print(res.nit)
             #print(res.success)
+            inner_it += res.nit
         else:
             res = minimize(inner_fun, x, jac=inner_jac, method='L-BFGS-B')
             print("No suitable prox-operator!")
@@ -170,7 +173,7 @@ def salm(f,
                 x - x_new)
         # print(grad_norm)
         if np.linalg.norm(norm_expression, np.inf) < tol_grad and k > 2:
-            print(f"Success! Converged in {k} iterations.")
+            print(f"Success! Converged in {k} iterations with {inner_it} inner iterations.")
             #print("Norm expression ", norm_expression)
             print(f"Norm of inequality constraints: {ineq_norm}, equality constraints: {eq_norm}.")
             return x_new

@@ -19,14 +19,14 @@ class MCP(ProxOperator):
             ``sigma`` to be used.
         g : :obj:`np.ndarray`, optional
             Vector to be subtracted
-        a : :obj: `float`
+        delta : :obj: `float`
             Parameter of the MCP function, must be larger than 2.
     """
-    def __init__(self, sigma=1., g=None, a = 3.7):
+    def __init__(self, sigma=1., g=None, delta = 2.0):
         super().__init__(None,False)
         self.sigma = sigma
         self.g = g
-        self.a = a
+        self.delta = delta
 
 
     def __call__(self, x: NDArray) -> float:
@@ -35,8 +35,8 @@ class MCP(ProxOperator):
     def elementwise(self, x: NDArray) -> NDArray:
         f = self.sigma * np.ones_like(x)
         absx = np.abs(x)
-        ind = absx <= self.a
-        f[ind] = self.sigma*((2 * absx[ind] * self.a - x[ind] ** 2) / (self.a ** 2))
+        ind = absx <= self.delta
+        f[ind] = self.sigma*((2 * absx[ind] * self.delta - x[ind] ** 2) / (self.delta ** 2))
         return f
 
 
@@ -45,22 +45,22 @@ class MCP(ProxOperator):
     @_check_tau
     def prox(self, x, tau):
         gamma = tau*self.sigma
-        if self.a**2 < 2*gamma:
+        if self.delta**2 < 2*gamma:
             x1 = x.copy()
             x1[np.square(x) <= 2*gamma] = 0
             return x1
-        elif self.a**2 > 2*gamma:
-            thresh = (2*gamma)/self.a
+        elif self.delta**2 > 2*gamma:
+            thresh = (2*gamma)/self.delta
             abs_x = np.abs(x)
             sign_x = np.sign(x)
             x2 = x.copy()
             ind = abs_x <= thresh
             x2[ind] = 0
-            ind = np.logical_and(thresh <= abs_x, abs_x <= self.a)
-            x2[ind] = (self.a/(self.a**2-2*gamma))*self.a*x[ind]-2*gamma*sign_x[ind]
+            ind = np.logical_and(thresh <= abs_x, abs_x <= self.delta)
+            x2[ind] = (self.delta / (self.delta ** 2 - 2 * gamma)) * self.delta * x[ind] - 2 * gamma * sign_x[ind]
             return x2
         else:
             x3 =x.copy()
-            x3[np.abs(x3) <= self.a] = 0
+            x3[np.abs(x3) <= self.delta] = 0
             return x3
 
