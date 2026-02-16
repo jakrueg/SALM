@@ -17,7 +17,7 @@ import LBFGS
 # Result object (SciPy-like)
 # ============================================================
 @dataclass
-class OptimizeResult:
+class OptimizeResultPanoc:
     x: np.ndarray
     success: bool
     status: int
@@ -200,7 +200,7 @@ def backtrack_stepsize_inner(gamma,
     if not grad_f_Az is None:
         grad_f_Az = grad_f_Az_tmp
     if gamma < minimum_gamma:
-        print(f"num_iters = {num_iters}")
+        #print(f"num_iters = {num_iters}")
         raise ValueError("Stepsize gamma became to small!")
     return gamma, g_z,f_Az,f_Az_upp
 
@@ -313,24 +313,42 @@ def panoc_plus(
                         )
 
     if gamma is None or adaptive is True:
-        state.gamma, state.g_z , _ , _ = backtrack_stepsize_inner(
-            gamma = state.gamma,
-            f= fun,
-            grad_f= grad,
-            A=A,
-            phi=phi,
-            x= state.x,
-            f_Ax= state.f_Ax,
-            At_grad_f_Ax= state.At_grad_f_Ax,
-            y= state.y,
-            z =state.z,
-            g_z =state.g_z,
-            res =state.res,
-            Az =state.Az,
-            grad_f_Az= state.grad_f_Az,
-            alpha = alpha,
-            minimum_gamma = min_gamma
-        )
+        try:
+            state.gamma, state.g_z , _ , _ = backtrack_stepsize_inner(
+                gamma = state.gamma,
+                f= fun,
+                grad_f= grad,
+                A=A,
+                phi=phi,
+                x= state.x,
+                f_Ax= state.f_Ax,
+                At_grad_f_Ax= state.At_grad_f_Ax,
+                y= state.y,
+                z =state.z,
+                g_z =state.g_z,
+                res =state.res,
+                Az =state.Az,
+                grad_f_Az= state.grad_f_Az,
+                alpha = alpha,
+                minimum_gamma = min_gamma
+            )
+        except ValueError:
+            return OptimizeResultPanoc(
+                x=state.z,
+                success=False,
+                status=2,
+                message="Stepsize gamma became to small!",
+                nit=maxiter,
+                fun=fun(A @ state.z) + state.g_z,
+                residual_norm=float(np.linalg.norm(
+                    (state.res / state.gamma)
+                    - state.At_grad_f_Ax
+                    + state.At_grad_f_Az,
+                    ord=np.inf,
+                )),
+                gamma=state.gamma,
+            )
+
     else:
         state.Az = A @ state.z
         grad_f_Az = grad(state.z)
@@ -390,6 +408,21 @@ def panoc_plus(
                 if f_Az > f_Az_upp + machine_tol and state.gamma >= min_gamma:
                     state.gamma *= 0.5
                     if state.gamma < min_gamma:
+                        return OptimizeResultPanoc(
+                            x=state.z,
+                            success=False,
+                            status=2,
+                            message="Stepsize gamma became to small!",
+                            nit=maxiter,
+                            fun=fun(A @ state.z) + state.g_z,
+                            residual_norm=float(np.linalg.norm(
+                                (state.res / state.gamma)
+                                - state.At_grad_f_Ax
+                                + state.At_grad_f_Az,
+                                ord=np.inf,
+                                )),
+                            gamma=state.gamma,
+                        )
                         #print(k)
                         #print(f_Az)
                         #print(f_Az_upp)
@@ -411,17 +444,17 @@ def panoc_plus(
         state.H.update(state.x_prev, state.res_prev)
 
         # stopping criterion (Bazinga.jl default)
-        crit = np.linalg.norm(
+        crit = float(np.linalg.norm(
             (state.res / state.gamma)
             - state.At_grad_f_Ax
             + state.At_grad_f_Az,
             ord=np.inf,
-        )
+        ))
         if verbose:
             print(f"{k:4d} | res={crit:.2e} | gamma={state.gamma:.2e}")
 
         if crit <= tol:
-            return OptimizeResult(
+            return OptimizeResultPanoc(
                 x=state.z,
                 success=True,
                 status=0,
@@ -432,7 +465,7 @@ def panoc_plus(
                 gamma=state.gamma,
             )
 
-    return OptimizeResult(
+    return OptimizeResultPanoc(
         x=state.z,
         success=False,
         status=1,

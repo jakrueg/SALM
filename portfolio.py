@@ -90,8 +90,8 @@ def jac_g0(x):
 
 # l0 norm
 
-phi = pyproximal.L1(sigma =1.0)
-#phi = MCP.MCP(sigma = 0.1)
+#phi = pyproximal.L0(sigma =1.0)
+phi = MCP.MCP(sigma = 0.1)
 
 g = [g0]
 jac_g = [jac_g0]
@@ -125,24 +125,28 @@ for i in range(n):
 x0 = np.ones(n) / n
 
 result = SALM.salm(f, phi=phi, x0=x0, h=[h], g=g, f_grad=f_grad, jac_h=[jac_h], jac_g=jac_g,
-                   tol_grad=tol_grad,tol_cons=tol_cons, maxiter=200)
-print("Optimized solution (SALM):\n", result)
-print("Objective:", f(result))
-print(f"Non-zero (over threshold):{np.count_nonzero((np.abs(result)>tol_grad))} of {n}")
-print("Return:", mu @ result)
-print("Budget:", np.sum(result))
+                   tol=tol_grad, maxiter=200)
+result_x = result.x
+print(result.message)
+print("Optimized solution (SALM):\n", result_x)
+print("Objective:", f(result_x))
+print(f"Non-zero (over threshold):{np.count_nonzero((np.abs(result_x)>tol_grad))} of {n}")
+print("Return:", mu @ result_x)
+print("Budget:", np.sum(result_x))
 
 #"""
 
 result = SALM.salm(f, phi=phi, x0=x0, h=[h], g=g, f_grad=f_grad, jac_h=[jac_h], jac_g=jac_g,
-                   tol_grad=tol_grad,tol_cons=tol_cons, maxiter=200,subsolver='PANOC_plus')
+                   tol=tol_grad, maxiter=200, subsolver='PANOC_plus')
+result_x = result.x
 #result = SALM_PANOC.salm(f, phi=phi,  x0=x0, h=[h], g=g, f_grad=f_grad, jac_h=[jac_h], jac_g=jac_g,
 #                   tol_grad=tol_grad,tol_cons=tol_cons, maxiter=200)
-print("Optimized solution (SALM-PANOC+):\n", result)
-print("Objective:", f(result))
-print(f"Non-zero (over threshold):{np.count_nonzero((np.abs(result)>tol_grad))} of {n}")
-print("Return:", mu @ result)
-print("Budget:", np.sum(result))
+print(result.message)
+print("Optimized solution (SALM-PANOC+):\n", result_x)
+print("Objective:", f(result_x))
+print(f"Non-zero (over threshold):{np.count_nonzero((np.abs(result_x)>tol_grad))} of {n}")
+print("Return:", mu @ result_x)
+print("Budget:", np.sum(result_x))
 #"""
 def g_return(x):
     return np.dot(mu, x) - rho

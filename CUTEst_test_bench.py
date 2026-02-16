@@ -147,9 +147,9 @@ print("Objective (Trust Region):\n", prob.obj(result2.x))
 
 #x0 = result2.x
 # Call the solver
-result = SALM.salm(f=f, phi=phi,x0 = x0, g=g, h=h, f_grad=f_grad, jac_g=jac_g,jac_h=jac_h, tol_grad=1e-3,
-               maxiter=200)
-print("Optimized solution (SALM):\n", result)
-print("Objective (SALM):\n", prob.obj(result))
+result = SALM.salm(f=f, phi=phi, x0 = x0, g=g, h=h, f_grad=f_grad, jac_g=jac_g, jac_h=jac_h, tol=1e-3,
+                   maxiter=200)
+print("Optimized solution (SALM):\n", result.x)
+print("Objective (SALM):\n", prob.obj(result.x))
 
 

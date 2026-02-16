@@ -1,7 +1,9 @@
 import numpy as np
 import copt
+from scipy.stats import false_discovery_control
+
 import panoc_plus
-from scipy.optimize import minimize
+from scipy.optimize import minimize, OptimizeResult
 
 
 def salm(f,
@@ -20,14 +22,23 @@ def salm(f,
          mu0=None,
          lam_max=1e8,
          mu_max=1e8,
-         tol_grad=1e-3,
-         tol_cons=1e-6,
+         tol=1e-6,
+         tol_prim = None,
+         tol_dual = None,
+         inner_tol=None,
+         kappa_tol = 0.1,
          maxiter=200,
-         tau=0.5,
+         tau=0.8,
          subsolver = 'ProxGrad',
          ):
     # Initialization
     x = np.asarray(x0, dtype=float)
+    if tol_prim is None:
+        tol_prim = tol
+    if tol_dual is None:
+        tol_dual = tol
+    if inner_tol is None:
+        inner_tol = np.cbrt(tol)
     #print(f(x))
     g = g or []
     h = h or []
@@ -124,28 +135,36 @@ def salm(f,
     v = np.clip(mu, -mu_max, mu_max)
     previous_aug_lag_grad = augmented_lagrangian_grad(x0, u, v, pen)
 
-    inner_it = 0
-
-    for k in range(maxiter):
+    tot_it = 0
+    tot_inner_it = 0
+    solved = False
+    tired = tot_it >= maxiter
+    broken = False
+    can_stop = solved or tired or broken
+    #for k in range(maxiter):
+    while not can_stop:
+        tot_it += 1
         # define inner function for solution
         def inner_fun(x_value):
             return augmented_lagrangian(x_value, u, v, pen)
 
         def inner_jac(x_value):
             return augmented_lagrangian_grad(x_value, u, v, pen)
-
+        sub_solved = False
         if phi.prox is not None:
             if subsolver == 'PANOC_plus':
-                res = panoc_plus.panoc_plus(fun=inner_fun, grad=inner_jac, phi=phi, x0=x, verbose=False, tol=1e-4,
+                res = panoc_plus.panoc_plus(fun=inner_fun, grad=inner_jac, phi=phi, x0=x, verbose=False, tol=inner_tol,
                                             A=np.eye(n), maxiter=200)
+                sub_solved = res.success
+                broken = res.status == 2
             else:
-                res = copt.minimize_proximal_gradient(fun=inner_fun, jac=inner_jac, prox=phi.prox, x0=x, verbose=2, tol=1e-4)
+                res = copt.minimize_proximal_gradient(fun=inner_fun, jac=inner_jac, prox=phi.prox, x0=x, verbose=2, tol=inner_tol)
+                sub_solved = res.success
             #print(res.x)
             #print(res.nit)
             #print(res.success)
-            inner_it += res.nit
+            tot_inner_it += res.nit
         else:
-            res = minimize(inner_fun, x, jac=inner_jac, method='L-BFGS-B')
             print("No suitable prox-operator!")
             break
         x_new = res.x
@@ -166,25 +185,68 @@ def salm(f,
             mu_new = v
 
         # Termination criteria
+
+
+
         # grad_norm = np.linalg.norm(augmented_lagrangian_grad(x_new, lam_new, mu_new, pen))
         scale = 1.0
         new_aug_lag_grad = augmented_lagrangian_grad(x_new, u, v, pen)
         norm_expression = new_aug_lag_grad - previous_aug_lag_grad + scale * (
                 x - x_new)
         # print(grad_norm)
-        if np.linalg.norm(norm_expression, np.inf) < tol_grad and k > 2:
-            print(f"Success! Converged in {k} iterations with {inner_it} inner iterations.")
+
+        solved = (inner_tol <= tol_dual and sub_solved) and np.linalg.norm(norm_expression, np.inf) <= tol_prim
+        tired = tot_it >= maxiter
+        can_stop = solved or tired or broken
+        """
+        if np.linalg.norm(norm_expression, np.inf) < tol and tot_it > 0:
+            print(f"Success! Converged in {tot_it} iterations with {tot_inner_it} inner iterations.")
             #print("Norm expression ", norm_expression)
             print(f"Norm of inequality constraints: {ineq_norm}, equality constraints: {eq_norm}.")
             return x_new
-        # Penalty update
-        if ineq_norm > tau * previous_ineq_norm or eq_norm > tau * previous_eq_norm:
-            pen = np.minimum(gamma * pen, pen_max)
+        """
+
+        if not can_stop:
+            # Penalty update
+            if ineq_norm > tau * previous_ineq_norm or eq_norm > tau * previous_eq_norm:
+                pen = np.minimum(gamma * pen, pen_max)
+            # Decrease inner tolerance
+            inner_tol = np.maximum(kappa_tol * inner_tol,tol_dual)
         #print(pen)
         # set up the constraint norms for the next loop
         previous_ineq_norm = ineq_norm
         previous_eq_norm = eq_norm
         x = x_new
         previous_aug_lag_grad = new_aug_lag_grad
-    print("Failure")
-    return x
+    if solved:
+        return OptimizeResult(x = x,
+                              success = True,
+                              status = 0,
+                              message = f"Success! Converged in {tot_it} iterations with {tot_inner_it} inner iterations.",
+                              fun = f(x) + phi(x),
+                              nit = tot_it,
+        )
+    elif tired:
+        return OptimizeResult(x=x,
+                              success=False,
+                              status=1,
+                              message=f"Failure! Maximum iterations reached.",
+                              fun=f(x) + phi(x),
+                              nit=tot_it,
+                              )
+    elif broken:
+        return OptimizeResult(x=x,
+                              success=False,
+                              status=2,
+                              message=f"Failure! Stepsize gamma became to small.",
+                              fun=f(x) + phi(x),
+                              nit=tot_it,
+                              )
+    else:
+        return OptimizeResult(x=x,
+                              success=False,
+                              status=3,
+                              message="Unknown",
+                              fun=f(x) + phi(x),
+                              nit=tot_it,
+                              )
