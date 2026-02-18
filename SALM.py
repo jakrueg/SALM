@@ -40,7 +40,7 @@ def salm(f,
     if inner_tol is None:
         inner_tol = np.cbrt(tol)
     #print(f(x))
-    print(tol)
+    #print(tol)
     g = g or []
     h = h or []
     n = x.size
