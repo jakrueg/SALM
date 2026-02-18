@@ -51,6 +51,6 @@ class L0Box(ProxOperator):
         y[final_mask] = x[final_mask]
         countnzy = np.sum(final_mask)
 
-        return self.sigma*countnzy
-
+        #return self.sigma*countnzy
+        return y
 
