@@ -171,7 +171,7 @@ m.addConstr(x_gp >= min_weight * bin_mask, "Min_Position")
 
 
 # Define objective function: Minimize risk
-m.setObjective(0.5 * x_gp @ Sigma @ x_gp, gp.GRB.MINIMIZE)
+m.setObjective(0.5 * x_gp @ Sigma @ x_gp + (10/len(mu)) * bin_mask.sum(), gp.GRB.MINIMIZE)
 
 #phi = pyproximal.L0(sigma =1.0)
 #phi = MCP.MCP(sigma = 0.1)
@@ -228,19 +228,19 @@ print("Budget:", np.sum(result_x))
 #cardinality_constr = m.addConstr(bin_mask.sum() <= nnz, "Cardinality")
 #m.optimize()
 
-cardinality_constr = m.addConstr(bin_mask.sum() <= nnz, "Cardinality")
+#cardinality_constr = m.addConstr(bin_mask.sum() <= nnz, "Cardinality")
 
 # Set the warm-start
-x_gp.VarHintVal = result_x
-x_gp.VarHintPri = 5
-bin_mask.VarHintVal = (result_x > 1e-6).astype(float)
-bin_mask.VarHintPri = 5
-m.update()
+#x_gp.VarHintVal = result_x
+#x_gp.VarHintPri = 5
+#bin_mask.VarHintVal = (result_x > 1e-6).astype(float)
+#bin_mask.VarHintPri = 5
+#m.update()
 
 m.optimize()
 
 print("Optimized solution (Gurobi):\n", x_gp.X)
-print(f"Minimum Risk:     {m.ObjVal:.6f}")
+print(f"Minimum Risk:     {f(x_gp.X):.6f}")
 print(f"Expected return:  {mu @ x_gp.X:.6f}")
 print(f"Solution time:    {m.Runtime:.2f} seconds\n")
 print(f"Number of trades: {sum(bin_mask.X)}\n")
