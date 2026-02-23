@@ -1,15 +1,14 @@
-from sklearn.externals.array_api_compat.cupy.linalg import outer
 
 from results import OptimizationResult
 import numpy as np
 from gurobipy import GRB
 
-def build_result(model):
+def build_result(model,x):
 
     success = model.status == GRB.OPTIMAL
 
-    x_vars = model.getVars()
-    x_opt = np.array([v.X for v in x_vars])
+    x_opt = x
+    print(x_opt)
     nnz = int(np.count_nonzero(x_opt))
 
     inner_iterations = model.IterCount
@@ -28,9 +27,9 @@ def build_result(model):
     return OptimizationResult(
         success=success,
         status= model.Status,
-        message = model.Message,
+        message = f"Model built with gurobi, finished with status {model.Status}",
         x=x_opt,
-        obj=model.Obj,
+        obj=model.ObjVal,
         nnz=nnz,
         outer_iterations=outer_iterations,
         inner_iterations=inner_iterations,

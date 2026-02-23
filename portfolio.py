@@ -1,10 +1,9 @@
 import resource
-
-from scipy.sparse import lil_matrix
-
 # Limit to 8 GB
 memory_limit = 24 * 1024 * 1024 * 1024
 resource.setrlimit(resource.RLIMIT_AS, (memory_limit, memory_limit))
+
+from scipy.sparse import lil_matrix
 
 
 from multiprocessing import Process
@@ -17,6 +16,8 @@ import numpy as np
 import scipy.optimize as opt
 import gurobipy as gp
 import warnings
+
+from Utilities import gurobi_adapter
 
 #import SALM_PANOC
 #import proxGenerator
@@ -117,15 +118,13 @@ rho = 1e-3
 
 
 path = Path("/home/jannis/Documents/MV/size200")
-problem_files=sorted(path.glob("*.mat"))
 #filename = "orl200-05-a"
 
 
 
 
-def run_problem(filepath):
+def run_problem(problem_name,algoProxGrad,algoPANOC,algoGurobi):
     # Read Problem Data
-    problem_name = filepath.stem
     print(problem_name)
     Sigma = read_covariance_matrix(path, problem_name)
     mu = read_mu(path, problem_name)
@@ -181,47 +180,63 @@ def run_problem(filepath):
             return J_row
 
         jac_g.append(jac_g_temp)
+    if algoProxGrad:
+        # SALM with proximal gradient as subproblem solver
+        result = SALM.salm(f, phi=phi, x0=x0, h=[h], g=g, f_grad=f_grad, jac_h=[jac_h], jac_g=jac_g, tol=tol, maxiter=200)
+        with open(f"Data/{problem_name}_proxGrad_result.pkl", "wb") as write_file:
+            pickle.dump(result, write_file)
+    if algoPANOC:
+        # SALM with PANOC+ as subproblem solver
 
-    # SALM with proximal gradient as subproblem solver
-    result = SALM.salm(f, phi=phi, x0=x0, h=[h], g=g, f_grad=f_grad, jac_h=[jac_h], jac_g=jac_g, tol=tol, maxiter=200)
-    with open(f"Data/{problem_name}_proxGrad_result.pkl", "wb") as write_file:
-        pickle.dump(result, write_file)
+        result2 = SALM.salm(f, phi=phi, x0=x0, h=[h], g=g, f_grad=f_grad, jac_h=[jac_h], jac_g=jac_g,
+                           tol=tol, maxiter=200, subsolver='PANOC_plus')
+        with open(f"Data/{problem_name}_PANOC_result.pkl", "wb") as write_file2:
+            pickle.dump(result2, write_file2)
+    if algoGurobi:
+        # Gurobi Reference solver
+        m = gp.Model()
 
-    # SALM with PANOC+ as subproblem solver
+        x_gp = m.addMVar(len(mu), lb=0, ub=ub, name="x")
 
-    result2 = SALM.salm(f, phi=phi, x0=x0, h=[h], g=g, f_grad=f_grad, jac_h=[jac_h], jac_g=jac_g,
-                       tol=tol, maxiter=200, subsolver='PANOC_plus')
-    with open(f"Data/{problem_name}_PANOC_result.pkl", "wb") as write_file:
-        pickle.dump(result2, write_file)
+        # bin_mask = m.addMVar(len(mu), vtype = gp.GRB.BINARY, name = "b")
+        xi = m.addMVar(len(mu), lb=0, ub=1, name="xi")
+        # Budget constraint: all investments sum up to 1
+        m.addConstr(x_gp.sum() == 1, "Budget_Constraint")
 
-# l0 norm
+        # Lower bound on expected return
+        m.addConstr(mu @ x_gp >= rho, "Minimal_Return")
 
-for problem in problem_files:
-    p = Process(target=run_problem, args=(problem, ))
-    p.start()
-    p.join()
-# gurobi function input
-m = gp.Model()
+        # Mixed Integer reformulation complementarity
+        m.addConstr(xi * x_gp == 0, "Complementarity_Constraint")
+
+        gurobi_scale = 1.0
+        # Define objective function: Minimize risk
+        m.setObjective(0.5 * x_gp @ Sigma @ x_gp + gurobi_scale * (len(mu) - xi.sum()), gp.GRB.MINIMIZE)
+        m.setParam('TimeLimit', 10)
+        m.optimize()
+        result_gurobi = gurobi_adapter.build_result(m,x_gp.X)
+        with open(f"Data/{problem_name}_Gurobi_result.pkl", "wb") as write_file3:
+            pickle.dump(result_gurobi, write_file3)
 
 
 
+def eval_all_probs(algoProxGrad, algoPANOC, algoGurobi):
+    problem_files = sorted(path.glob("*.mat"))
+    for problem in problem_files:
+        p = Process(target=run_problem, args=(problem.stem,algoProxGrad,algoPANOC,algoGurobi))
+        p.start()
+        p.join()
+
+
+
+"""
 n = 40
 Sigma, mu = generate_portfolio_random(n)
 #print(f"Sigma: {Sigma}")
 rho = 1e-3
 ub =np.ones(n)
-x_gp = m.addMVar(len(mu), lb = 0, ub = ub, name = "x")
+"""
 
-#bin_mask = m.addMVar(len(mu), vtype = gp.GRB.BINARY, name = "b")
-xi = m.addMVar(len(mu), lb = 0, ub = 1, name = "xi")
-# Budget constraint: all investments sum up to 1
-m.addConstr(x_gp.sum() == 1, "Budget_Constraint")
-
-# Lower bound on expected return
-m.addConstr(mu @ x_gp >= rho, "Minimal_Return")
-
-# Mixed Integer reformulation complementarity
-m.addConstr(xi*x_gp == 0, "Complementarity_Constraint" )
 
 # Force x to 0 if not traded; see formula above
 #m.addConstr(x_gp <= bin_mask, name="Indicator")
@@ -230,10 +245,6 @@ m.addConstr(xi*x_gp == 0, "Complementarity_Constraint" )
 # Minimum position: if invested, at least min_weight
 #min_weight = 0.002  # e.g., at least 2% per asset
 #m.addConstr(x_gp >= min_weight * bin_mask, "Min_Position")
-
-gurobi_scale = 1.0
-# Define objective function: Minimize risk
-m.setObjective(0.5 * x_gp @ Sigma @ x_gp + gurobi_scale * (len(mu) -xi.sum()), gp.GRB.MINIMIZE)
 
 #phi = pyproximal.L0(sigma =1.0)
 #phi = MCP.MCP(sigma = 0.1)
@@ -253,6 +264,8 @@ for i in range(n):
 
 #print(0.5* x0.T @ Sigma @ x0)
 #result = SALM.salm(f, phi=phi, x0=x0, h=[h], g=g, f_grad=f_grad, jac_h=[jac_h], jac_g=jac_g, tol=tol, maxiter=200)
+
+"""
 result_x = result.x
 print(result.message)
 print("Optimized solution (SALM):\n", result_x)
@@ -261,7 +274,7 @@ nnz = int(np.count_nonzero((np.abs(result_x) > tol)))
 print(f"Non-zero (over threshold):{nnz} of {n}")
 print("Return:", mu @ result_x)
 print("Budget:", np.sum(result_x))
-
+"""
 #mvp = MeanVariancePortfolio(mu,Sigma)
 #pf = mvp.efficient_portfolio(rho,max_positions=nnz)
 #print("Optimized solution (Gurobi):\n", pf.x)
@@ -282,7 +295,7 @@ print("Budget:", np.sum(result_x))
 #m.update()
 
 #m.optimize()
-
+"""
 print("Optimized solution (Gurobi):\n", x_gp.X)
 print(f"Minimum Risk:     {f(x_gp.X):.6f}")
 print(f"Expected return:  {mu @ x_gp.X:.6f}")
@@ -290,9 +303,9 @@ print(f"Solution time:    {m.Runtime:.2f} seconds")
 nnz = int(np.count_nonzero(np.abs(x_gp.X)))
 print(f"Number of trades: {nnz}\n")
 
+"""
 
-
-#"""
+"""
 
 result = SALM.salm(f, phi=phi, x0=x0, h=[h], g=g, f_grad=f_grad, jac_h=[jac_h], jac_g=jac_g,
                    tol=tol, maxiter=200, subsolver='PANOC_plus')
@@ -308,9 +321,6 @@ print("Return:", mu @ result_x)
 print("Budget:", np.sum(result_x))
 
 
-
-
-#"""
 def g_return(x):
     return np.dot(mu, x) - rho
 
@@ -347,3 +357,5 @@ print("Solution (Trust Region):\n", result2.x)
 print("Objective:", result2.fun)
 print("Return:", mu @ result2.x)
 print("Budget:", np.sum(result2.x))
+
+"""
