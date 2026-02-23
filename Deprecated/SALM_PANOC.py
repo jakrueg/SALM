@@ -1,7 +1,7 @@
 import numpy as np
 #import copt
-import panoc_plus
-from scipy.optimize import minimize
+from Algorithms import panoc_plus
+
 
 def salm(f,
     phi,

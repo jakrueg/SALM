@@ -1,9 +1,11 @@
 import numpy as np
 import copt
-from scipy.stats import false_discovery_control
+from scipy.sparse import lil_matrix
 
-import panoc_plus
-from scipy.optimize import minimize, OptimizeResult
+
+from Algorithms import panoc_plus
+from Utilities.AugmentedLagrangianGradient import AugmentedLagrangianGradient
+from results import OptimizationResult
 
 
 def salm(f,
@@ -52,6 +54,12 @@ def salm(f,
         p = len(h(x0))
     else:
         p = len(h)
+
+    if not callable(jac_g):
+        J_g = lil_matrix((m, n), dtype=float)
+
+    if not callable(jac_h):
+        J_h = lil_matrix((p, n), dtype=float)
     # initialize multipliers
     if lam0 is None:
         lam = np.zeros(m)
@@ -87,7 +95,21 @@ def salm(f,
             return None
         if callable(jac_h):
             return np.atleast_1d(jac_h(x_value))
-        return np.vstack([np.atleast_1d(jac_h_i(x_value)) for jac_h_i in jac_h])
+        eval_jac_into(J_h,x_value,jac_h)
+        return J_h.tocsr()
+        #return np.vstack([np.atleast_1d(jac_h_i(x_value)) for jac_h_i in jac_h])
+
+    # Auxiliary function that works on preallocated matrix
+
+    def eval_jac_into(J, x_value,jac_func):
+        J.rows = [[] for _ in range(J.shape[0])]
+        J.data = [[] for _ in range(J.shape[0])]
+
+        for i, jac_i in enumerate(jac_func):
+            row = np.atleast_1d(jac_i(x_value))
+            nz = np.nonzero(row)[0]
+            J.rows[i] = nz.tolist()
+            J.data[i] = row[nz].tolist()
 
     # returns evaluation matrix for the jacobian of g
     def eval_jac_g(x_value):
@@ -95,7 +117,11 @@ def salm(f,
             return None
         if callable(jac_g):
             return np.atleast_1d(jac_g(x_value))
-        return np.vstack([np.atleast_1d(jac_g_i(x_value)) for jac_g_i in jac_g])
+        eval_jac_into(J_g,x_value,jac_g)
+        return J_g.tocsr()
+        #return np.vstack([np.atleast_1d(jac_g_i(x_value)) for jac_g_i in jac_g])
+
+
 
     # evaluates the augmented lagrangian function
     def augmented_lagrangian(x_value, lam_temp, mu_temp, pen_temp):
@@ -134,7 +160,9 @@ def salm(f,
     previous_eq_norm = np.inf
     u = np.clip(lam, 0.0, lam_max)
     v = np.clip(mu, -mu_max, mu_max)
-    previous_aug_lag_grad = augmented_lagrangian_grad(x0, u, v, pen)
+    augLagGrad = AugmentedLagrangianGradient(g=g,h=h,f_grad=f_grad,jac_g=jac_g,jac_h=jac_h,lam_temp=u,mu_temp=v,pen_temp=pen,m=m,n=n,p=p)
+    #previous_aug_lag_grad = augmented_lagrangian_grad(x0, u, v, pen)
+    previous_aug_lag_grad = augLagGrad(x0)
 
     tot_it = 0
     tot_inner_it = 0
@@ -149,8 +177,9 @@ def salm(f,
         def inner_fun(x_value):
             return augmented_lagrangian(x_value, u, v, pen)
 
-        def inner_jac(x_value):
-            return augmented_lagrangian_grad(x_value, u, v, pen)
+        #def inner_jac(x_value):
+        #    return augmented_lagrangian_grad(x_value, u, v, pen)
+        inner_jac = AugmentedLagrangianGradient(g=g,h=h,f_grad=f_grad,jac_g=jac_g,jac_h=jac_h,lam_temp=u,mu_temp=v,pen_temp=pen,m=m,n=n,p=p)
         sub_solved = False
         if phi.prox is not None:
             if subsolver == 'PANOC_plus':
@@ -174,6 +203,7 @@ def salm(f,
             lam_new = np.maximum(0.0, u + pen * g_new)
             ineq_norm = np.linalg.norm(np.minimum(-g_new, (1 / pen) * u))
         else:
+            g_new = 0.0
             ineq_norm = 0.0
             lam_new = u
 
@@ -182,6 +212,7 @@ def salm(f,
             mu_new = np.maximum(0.0, v + pen * h_new)
             eq_norm = np.linalg.norm(h_new)
         else:
+            h_new = 0.0
             eq_norm = 0.0
             mu_new = v
 
@@ -191,7 +222,10 @@ def salm(f,
 
         # grad_norm = np.linalg.norm(augmented_lagrangian_grad(x_new, lam_new, mu_new, pen))
         scale = 1.0
-        new_aug_lag_grad = augmented_lagrangian_grad(x_new, u, v, pen)
+        augLagGrad_temp = AugmentedLagrangianGradient(g=g, h=h, f_grad=f_grad, jac_g=jac_g, jac_h=jac_h, lam_temp=u,
+                                                 mu_temp=v, pen_temp=pen, m=m, n=n, p=p)
+
+        new_aug_lag_grad = augLagGrad_temp(x_new)
         norm_expression = new_aug_lag_grad - previous_aug_lag_grad + scale * (
                 x - x_new)
         # print(grad_norm)
@@ -220,34 +254,50 @@ def salm(f,
         x = x_new
         previous_aug_lag_grad = new_aug_lag_grad
     if solved:
-        return OptimizeResult(x = x,
+        return OptimizationResult(x = x,
                               success = True,
                               status = 0,
                               message = f"Success! Converged in {tot_it} iterations with {tot_inner_it} inner iterations.",
-                              fun = f(x) + phi(x),
-                              nit = tot_it,
+                              nnz=int(np.count_nonzero(x)),
+                              obj = f(x) + phi(x),
+                              outer_iterations=tot_it,
+                              inner_iterations=tot_inner_it,
+                              ineq_violation=float(np.linalg.norm(np.minimum(g_new, 0),ord=np.inf)),
+                              eq_violation=float(np.linalg.norm(h_new,ord=np.inf)),
         )
     elif tired:
-        return OptimizeResult(x=x,
+        return OptimizationResult(x=x,
                               success=False,
                               status=1,
                               message=f"Failure! Maximum iterations reached.",
-                              fun=f(x) + phi(x),
-                              nit=tot_it,
+                              nnz=int(np.count_nonzero(x)),
+                              obj=f(x) + phi(x),
+                              outer_iterations=tot_it,
+                              inner_iterations=tot_inner_it,
+                              ineq_violation=float(np.linalg.norm(np.minimum(g_new, 0),ord=np.inf)),
+                              eq_violation=float(np.linalg.norm(h_new,ord=np.inf)),
                               )
     elif broken:
-        return OptimizeResult(x=x,
+        return OptimizationResult(x=x,
                               success=False,
                               status=2,
                               message=f"Failure! Stepsize gamma became to small.",
-                              fun=f(x) + phi(x),
-                              nit=tot_it,
+                              nnz=int(np.count_nonzero(x)),
+                              obj = f(x) + phi(x),
+                              outer_iterations=tot_it,
+                              inner_iterations=tot_inner_it,
+                              ineq_violation=float(np.linalg.norm(np.minimum(g_new, 0),ord=np.inf)),
+                              eq_violation=float(np.linalg.norm(h_new,ord=np.inf)),
                               )
     else:
-        return OptimizeResult(x=x,
+        return OptimizationResult(x=x,
                               success=False,
                               status=3,
                               message="Unknown",
-                              fun=f(x) + phi(x),
-                              nit=tot_it,
+                              nnz=int(np.count_nonzero(x)),
+                              obj = f(x) + phi(x),
+                              outer_iterations=tot_it,
+                              inner_iterations=tot_inner_it,
+                              ineq_violation=float(np.linalg.norm(np.minimum(g_new, 0),ord=np.inf)),
+                              eq_violation=float(np.linalg.norm(h_new,ord=np.inf)),
                               )

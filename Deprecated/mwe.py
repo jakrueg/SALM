@@ -1,6 +1,6 @@
 import numpy as np
 
-from panoc_plus import panoc_plus
+from Algorithms.panoc_plus import panoc_plus
 import pyproximal
 from sklearn.linear_model import Lasso
 

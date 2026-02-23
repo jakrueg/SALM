@@ -1,7 +1,7 @@
 # This is a sample Python script.
-import SALM
+from Algorithms import SALM
 import numpy as np
-import portfolio as pf
+
 # Press Shift+F10 to execute it or replace it with your code.
 # Press Double Shift to search everywhere for classes, files, tool windows, actions, and settings.
 
@@ -73,7 +73,7 @@ if __name__ == '__main__':
     x0 = np.array([2.0, 1.0, 3.0])
 
     # Call the solver
-    result = SALM.salm(f, phi=phi,phi_prox=phi_prox, x0=x0, h=[h], g=[g1, g2], f_grad=f_grad, jac_h=[jac_h], jac_g=[jac_g1, jac_g2], tol=1e-5, maxiter=200)
+    result = SALM.salm(f, phi=phi, phi_prox=phi_prox, x0=x0, h=[h], g=[g1, g2], f_grad=f_grad, jac_h=[jac_h], jac_g=[jac_g1, jac_g2], tol=1e-5, maxiter=200)
     print("Optimized solution:", result)
 
 
@@ -107,7 +107,7 @@ if __name__ == '__main__':
     x0 = np.array([1.0,1.0])
 
     # Call the solver
-    result = SALM.salm(f, phi=phi,phi_prox=phi_prox, x0=x0, g=[g1, g2], f_grad=f_grad, jac_g=[jac_g1, jac_g2], tol=1e-5, maxiter=200)
+    result = SALM.salm(f, phi=phi, phi_prox=phi_prox, x0=x0, g=[g1, g2], f_grad=f_grad, jac_g=[jac_g1, jac_g2], tol=1e-5, maxiter=200)
     print("Optimized solution:", result)
 
 

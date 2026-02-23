@@ -1,14 +1,9 @@
 # Example: using problem classification system
 import pycutest
-import numpy as np
 import pyproximal
 
-import SALM
-import SALM_PANOC
-import proxGenerator
+from Algorithms import SALM
 import scipy.optimize as opt
-import panoc_plus
-
 
 unconstrained_probs = pycutest.find_problems(objective="quadratic", constraints="unconstrained")
 

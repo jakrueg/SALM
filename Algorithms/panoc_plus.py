@@ -10,7 +10,7 @@
 
 import numpy as np
 from dataclasses import dataclass
-import LBFGS
+from Utilities import LBFGS
 
 
 # ============================================================
@@ -298,7 +298,7 @@ def panoc_plus(
     z = phi.prox(y,gamma)
     g_z = phi(z)
 
-    lbfgs = LBFGS.LBFGSOperator(lbfgs_memory,x)
+    lbfgs = LBFGS.LBFGSOperator(lbfgs_memory, x)
     state = _PANOCState(x0 = x,
                         Ax=Ax,
                         f_Ax = f_Ax,
