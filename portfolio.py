@@ -1,4 +1,7 @@
 import resource
+
+import pyproximal
+
 # Limit to 8 GB
 memory_limit = 24 * 1024 * 1024 * 1024
 resource.setrlimit(resource.RLIMIT_AS, (memory_limit, memory_limit))
@@ -131,10 +134,11 @@ def run_problem(problem_name,algoProxGrad,algoPANOC,algoGurobi):
     rho = read_rho(path, problem_name)
     ub = read_ub(path, problem_name)
     n = read_n(path, problem_name)
-    x0 = np.ones(n) / n
+    x0 = np.ones(n) #/ n
 
+    regularization_factor = 1.0
     # Set up optimization problem
-    phi = L0Box.L0Box(sigma = 1, u = ub)
+    phi = L0Box.L0Box(sigma = regularization_factor, u = ub)
     #phi = pyproximal.L0(sigma =1.0)
 
     def f(x):
@@ -164,7 +168,7 @@ def run_problem(problem_name,algoProxGrad,algoPANOC,algoGurobi):
 
     g = [g0]
     jac_g = [jac_g0]
-
+    """
     for i in range(n):
         def g_temp(x, i=i):
             return -x[i]
@@ -180,18 +184,12 @@ def run_problem(problem_name,algoProxGrad,algoPANOC,algoGurobi):
             return J_row
 
         jac_g.append(jac_g_temp)
+    """
     if algoProxGrad:
         # SALM with proximal gradient as subproblem solver
         result = SALM.salm(f, phi=phi, x0=x0, h=[h], g=g, f_grad=f_grad, jac_h=[jac_h], jac_g=jac_g, tol=tol, maxiter=200)
         with open(f"Data/{problem_name}_proxGrad_result.pkl", "wb") as write_file:
             pickle.dump(result, write_file)
-    if algoPANOC:
-        # SALM with PANOC+ as subproblem solver
-
-        result2 = SALM.salm(f, phi=phi, x0=x0, h=[h], g=g, f_grad=f_grad, jac_h=[jac_h], jac_g=jac_g,
-                           tol=tol, maxiter=200, subsolver='PANOC_plus')
-        with open(f"Data/{problem_name}_PANOC_result.pkl", "wb") as write_file2:
-            pickle.dump(result2, write_file2)
     if algoGurobi:
         # Gurobi Reference solver
         m = gp.Model()
@@ -209,14 +207,22 @@ def run_problem(problem_name,algoProxGrad,algoPANOC,algoGurobi):
         # Mixed Integer reformulation complementarity
         m.addConstr(xi * x_gp == 0, "Complementarity_Constraint")
 
-        gurobi_scale = 1.0
+        gurobi_scale = regularization_factor
         # Define objective function: Minimize risk
         m.setObjective(0.5 * x_gp @ Sigma @ x_gp + gurobi_scale * (len(mu) - xi.sum()), gp.GRB.MINIMIZE)
-        m.setParam('TimeLimit', 10)
+        m.setParam('TimeLimit', 20)
         m.optimize()
         result_gurobi = gurobi_adapter.build_result(m,x_gp.X)
-        with open(f"Data/{problem_name}_Gurobi_result.pkl", "wb") as write_file3:
-            pickle.dump(result_gurobi, write_file3)
+        #with open(f"Data/{problem_name}_Gurobi_result.pkl", "wb") as write_file3:
+        #    pickle.dump(result_gurobi, write_file3)
+
+    if algoPANOC:
+        # SALM with PANOC+ as subproblem solver
+        #x0 = result_gurobi.x
+        result2 = SALM.salm(f, phi=phi, x0=x0, h=[h], g=g, f_grad=f_grad, jac_h=[jac_h], jac_g=jac_g,
+                           tol=tol, maxiter=1000, subsolver='PANOC_plus')
+        with open(f"Data/{problem_name}_PANOC_result.pkl", "wb") as write_file2:
+            pickle.dump(result2, write_file2)
 
 
 

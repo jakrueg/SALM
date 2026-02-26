@@ -262,8 +262,8 @@ def panoc_plus(
     beta=0.5,
     lbfgs_memory=5,
     adaptive=True,
-    min_gamma=1e-7,
-    max_backtracks=20,
+    min_gamma=1e-32,
+    max_backtracks=50,
     verbose=False,
 ):
     """
@@ -290,6 +290,7 @@ def panoc_plus(
     if gamma is None:
         gamma = alpha / lower_bound_smoothness_constant(f=fun, grad_f=grad, A=A, x=x0)
         #gamma = alpha* 1e-2
+        #gamma = 1.0
         #print(f"gamma = {gamma}")
 
     At_grad_f_Ax = A.T @ grad_f_Ax
@@ -313,7 +314,9 @@ def panoc_plus(
                         )
 
     if gamma is None or adaptive is True:
+        reduce_gamma = 0.5
         try:
+            """
             state.gamma, state.g_z , _ , _ = backtrack_stepsize_inner(
                 gamma = state.gamma,
                 f= fun,
@@ -331,7 +334,36 @@ def panoc_plus(
                 grad_f_Az= state.grad_f_Az,
                 alpha = alpha,
                 minimum_gamma = min_gamma
+                
             )
+            """
+            f_Az_upp = f_model(state.f_Ax, state.At_grad_f_Ax, state.res, alpha / state.gamma)
+            state.Az = A @ state.z
+            f_Az = fun(state.Az)
+            grad_f_Az_tmp = grad(state.Az)
+            machine_tol = 10 * np.finfo(float).eps * (1 + np.abs(f_Az))
+            # print(f"tol = {tol}")
+            #print(f"Initial backtracking: f(Az) = {f_Az}, upper bound = {f_Az_upp}, gamma = {gamma}")
+            num_iters = 0
+            while f_Az > f_Az_upp + machine_tol and state.gamma >= min_gamma:
+                state.gamma *= reduce_gamma
+                state.y = state.x - state.gamma * state.At_grad_f_Ax
+                state.z = phi.prox(state.y, state.gamma)
+                state.g_z = phi(state.z)
+                # z, g_z = phi_prox(y,gamma)
+                state.res = state.x - state.z
+                f_Az_upp = f_model(state.f_Ax, state.At_grad_f_Ax, state.res, alpha / state.gamma)
+                state.Az = A @ state.z
+                f_Az = fun(state.Az)
+                grad_f_Az_tmp = grad(state.Az)
+                machine_tol = 10 * np.finfo(float).eps * (1 + np.abs(f_Az))
+                num_iters += 1
+            if not state.grad_f_Az is None:
+                state.grad_f_Az = grad_f_Az_tmp
+            if state.gamma < min_gamma:
+                print(f"Initial backtracking: f(Az) = {f_Az}, upper bound = {f_Az_upp}, gamma = {state.gamma}")
+                print(f"Initial backtrack! num_iters = {num_iters}")
+                raise ValueError("Stepsize gamma became to small!")
         except ValueError:
             return OptimizeResultPanoc(
                 x=state.z,
@@ -373,7 +405,7 @@ def panoc_plus(
 
         while True:
             if can_update_direction:
-                # compute direction - is it correct?
+                # compute direction
                 state.d = -1.0 * (state.H @ state.res_prev)
                 state.tau = 1.0
                 state.x = state.x_prev + state.d
@@ -408,6 +440,7 @@ def panoc_plus(
                 if f_Az > f_Az_upp + machine_tol and state.gamma >= min_gamma:
                     state.gamma *= 0.5
                     if state.gamma < min_gamma:
+                        print("In iteration Process")
                         return OptimizeResultPanoc(
                             x=state.z,
                             success=False,
@@ -451,7 +484,7 @@ def panoc_plus(
             ord=np.inf,
         ))
         if verbose:
-            print(f"{k:4d} | res={crit:.2e} | gamma={state.gamma:.2e}")
+            print(f"{k:4d} | res={np.linalg.norm(state.res,ord=np.inf)/state.gamma:.3e} | criterion={crit:.3e} | gamma={state.gamma:.3e} | tau={state.tau:.3e}")
 
         if crit <= tol:
             return OptimizeResultPanoc(

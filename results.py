@@ -78,6 +78,13 @@ def load_portfolio(solver):
     df_results = pd.DataFrame(results)
     return df_results
 
+def load_single_portfolio(solver,prob_name):
+    filepath = build_path(prob_name, solver)
+    with open(filepath, "rb") as f:
+        opt_res = pickle.load(f)
+
+    return opt_res
+
 def plot_results(df_results,metric):
     num_probs = len(df_results)
 

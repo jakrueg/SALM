@@ -1,5 +1,6 @@
 import numpy as np
 import copt
+from numpy.f2py.crackfortran import verbose
 from scipy.sparse import lil_matrix
 
 
@@ -18,12 +19,12 @@ def salm(f,
          jac_g=None,
          jac_h=None,
          pen0=1,
-         pen_max=1e8,
+         pen_max=1e20,
          gamma=2,
          lam0=None,
          mu0=None,
-         lam_max=1e8,
-         mu_max=1e8,
+         lam_max=1e20,
+         mu_max=1e20,
          tol=1e-6,
          tol_prim = None,
          tol_dual = None,
@@ -183,7 +184,7 @@ def salm(f,
         sub_solved = False
         if phi.prox is not None:
             if subsolver == 'PANOC_plus':
-                res = panoc_plus.panoc_plus(fun=inner_fun, grad=inner_jac, phi=phi, x0=x, verbose=False, tol=inner_tol,
+                res = panoc_plus.panoc_plus(fun=inner_fun, grad=inner_jac, phi=phi, x0=x, verbose=True, tol=inner_tol,
                                             A=np.eye(n), maxiter=200)
                 sub_solved = res.success
                 broken = res.status == 2
@@ -219,7 +220,7 @@ def salm(f,
         # Termination criteria
 
 
-
+        """
         # grad_norm = np.linalg.norm(augmented_lagrangian_grad(x_new, lam_new, mu_new, pen))
         scale = 1.0
         augLagGrad_temp = AugmentedLagrangianGradient(g=g, h=h, f_grad=f_grad, jac_g=jac_g, jac_h=jac_h, lam_temp=u,
@@ -228,9 +229,12 @@ def salm(f,
         new_aug_lag_grad = augLagGrad_temp(x_new)
         norm_expression = new_aug_lag_grad - previous_aug_lag_grad + scale * (
                 x - x_new)
+                """
         # print(grad_norm)
+        eq_violation = np.linalg.norm(h_new,ord = np.inf)
+        ineq_violation = np.linalg.norm(np.minimum(-g_new,lam_new),ord = np.inf)
 
-        solved = (inner_tol <= tol_dual and sub_solved) and np.linalg.norm(norm_expression, np.inf) <= tol_prim
+        solved = (inner_tol <= tol_dual and sub_solved) and eq_violation <= tol_prim and ineq_violation <= tol_prim
         tired = tot_it >= maxiter
         can_stop = solved or tired or broken
         """
@@ -252,7 +256,7 @@ def salm(f,
         previous_ineq_norm = ineq_norm
         previous_eq_norm = eq_norm
         x = x_new
-        previous_aug_lag_grad = new_aug_lag_grad
+        #previous_aug_lag_grad = new_aug_lag_grad
     if solved:
         return OptimizationResult(x = x,
                               success = True,
@@ -262,7 +266,7 @@ def salm(f,
                               obj = f(x) + phi(x),
                               outer_iterations=tot_it,
                               inner_iterations=tot_inner_it,
-                              ineq_violation=float(np.linalg.norm(np.minimum(g_new, 0),ord=np.inf)),
+                              ineq_violation=float(np.linalg.norm(np.maximum(g_new, 0),ord=np.inf)),
                               eq_violation=float(np.linalg.norm(h_new,ord=np.inf)),
         )
     elif tired:
@@ -274,10 +278,11 @@ def salm(f,
                               obj=f(x) + phi(x),
                               outer_iterations=tot_it,
                               inner_iterations=tot_inner_it,
-                              ineq_violation=float(np.linalg.norm(np.minimum(g_new, 0),ord=np.inf)),
+                              ineq_violation=float(np.linalg.norm(np.maximum(g_new, 0),ord=np.inf)),
                               eq_violation=float(np.linalg.norm(h_new,ord=np.inf)),
                               )
     elif broken:
+        print(tot_it)
         return OptimizationResult(x=x,
                               success=False,
                               status=2,
@@ -286,7 +291,7 @@ def salm(f,
                               obj = f(x) + phi(x),
                               outer_iterations=tot_it,
                               inner_iterations=tot_inner_it,
-                              ineq_violation=float(np.linalg.norm(np.minimum(g_new, 0),ord=np.inf)),
+                              ineq_violation=float(np.linalg.norm(np.maximum(g_new, 0),ord=np.inf)),
                               eq_violation=float(np.linalg.norm(h_new,ord=np.inf)),
                               )
     else:
@@ -298,6 +303,6 @@ def salm(f,
                               obj = f(x) + phi(x),
                               outer_iterations=tot_it,
                               inner_iterations=tot_inner_it,
-                              ineq_violation=float(np.linalg.norm(np.minimum(g_new, 0),ord=np.inf)),
+                              ineq_violation=float(np.linalg.norm(np.maximum(g_new, 0),ord=np.inf)),
                               eq_violation=float(np.linalg.norm(h_new,ord=np.inf)),
                               )
