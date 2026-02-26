@@ -136,7 +136,7 @@ def run_problem(problem_name,algoProxGrad,algoPANOC,algoGurobi):
     n = read_n(path, problem_name)
     x0 = np.ones(n) #/ n
 
-    regularization_factor = 1.0
+    regularization_factor = 0.2
     # Set up optimization problem
     phi = L0Box.L0Box(sigma = regularization_factor, u = ub)
     #phi = pyproximal.L0(sigma =1.0)

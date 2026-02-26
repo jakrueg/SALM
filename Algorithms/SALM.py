@@ -184,7 +184,7 @@ def salm(f,
         sub_solved = False
         if phi.prox is not None:
             if subsolver == 'PANOC_plus':
-                res = panoc_plus.panoc_plus(fun=inner_fun, grad=inner_jac, phi=phi, x0=x, verbose=True, tol=inner_tol,
+                res = panoc_plus.panoc_plus(fun=inner_fun, grad=inner_jac, phi=phi, x0=x, verbose=False, tol=inner_tol,
                                             A=np.eye(n), maxiter=200)
                 sub_solved = res.success
                 broken = res.status == 2

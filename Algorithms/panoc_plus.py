@@ -484,7 +484,7 @@ def panoc_plus(
             ord=np.inf,
         ))
         if verbose:
-            print(f"{k:4d} | res={np.linalg.norm(state.res,ord=np.inf)/state.gamma:.3e} | criterion={crit:.3e} | gamma={state.gamma:.3e} | tau={state.tau:.3e}")
+            print(f"{k:4d} | res={np.linalg.norm(state.res,ord=np.inf)/state.gamma:.3e} | criterion={crit:.3e} | gamma={state.gamma:.3e} | tau={state.tau:.3e} | nnz={np.count_nonzero(state.z):4d} |")
 
         if crit <= tol:
             return OptimizeResultPanoc(
