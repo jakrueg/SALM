@@ -288,7 +288,11 @@ def panoc_plus(
     grad_f_Ax = grad(Ax)
 
     if gamma is None:
-        gamma = alpha / lower_bound_smoothness_constant(f=fun, grad_f=grad, A=A, x=x0)
+        L = lower_bound_smoothness_constant(f=fun, grad_f=grad, A=A, x=x0)
+        if L == 0:
+            gamma  = alpha
+        else:
+            gamma = alpha / L
         #gamma = alpha* 1e-2
         #gamma = 1.0
         #print(f"gamma = {gamma}")

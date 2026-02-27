@@ -1,6 +1,9 @@
 from scipy.sparse import lil_matrix
 import numpy as np
 
+from Utilities import jacobian
+
+
 class AugmentedLagrangianGradient:
     def __init__(self,g,h,f_grad, jac_g,jac_h, lam_temp, mu_temp, pen_temp, m, n,p):
         self.g = g
@@ -53,24 +56,42 @@ class AugmentedLagrangianGradient:
 
 
     def __call__(self, x_value):
-        self.update_jacobian(J=self.J_g, jac=self.jac_g, x=x_value)
-        self.update_jacobian(J=self.J_h, jac=self.jac_h, x=x_value)
-        if self.f_grad is None:
-            return None
         f_grad_val = np.asarray(self.f_grad(x_value), dtype=float)
-        grad_sum = f_grad_val.copy()
         h_temp = self.eval_h(x_value)
-        #print(h_temp)
-        h_Jac_temp = self.J_h.tocsr()
-        hT = h_Jac_temp.transpose()
-        if len(h_temp) > 0:
-            c = hT @ h_temp
-            grad_sum += np.transpose(hT @ np.atleast_1d(self.mu_temp + self.pen_temp * h_temp))
         g_temp = self.eval_g(x_value)
-        g_Jac_temp = self.J_g.tocsr()
-        #print(g_Jac_temp)
+
+        grad_sum = f_grad_val.copy()
         if len(g_temp) > 0:
-            #grad_sum += g_Jac_temp.T.dot(lam_temp+pen_temp*np.maximum(0.0,g_temp))
-            grad_sum += np.transpose(g_Jac_temp.transpose() @( self.lam_temp + self.pen_temp * np.maximum(0.0, g_temp)))
+            if isinstance(self.jac_g,jacobian.Jacobian):
+                grad_sum += self.jac_g.jacobian_vector_product(x= x_value,vec=( self.lam_temp + self.pen_temp * np.maximum(0.0, g_temp)))
+            else:
+                if callable(self.jac_g):
+                    g_Jac_temp = self.jac_g(x_value)
+                    jac_gT = g_Jac_temp.T
+                else:
+                    self.update_jacobian(J=self.J_g, jac=self.jac_g, x=x_value)
+                    g_Jac_temp = self.J_g.tocsr()
+                    jac_gT = g_Jac_temp.transpose()
+                    #grad_sum += g_Jac_temp.T.dot(lam_temp+pen_temp*np.maximum(0.0,g_temp))
+                grad_sum += np.transpose(jac_gT @( self.lam_temp + self.pen_temp * np.maximum(0.0, g_temp)))
+
+        if len(h_temp) > 0:
+            if isinstance(self.jac_h,jacobian.Jacobian):
+                grad_sum += self.jac_h.jacobian_vector_product(x = x_value, vec = self.mu_temp + self.pen_temp * h_temp)
+            else:
+                if callable(self.jac_h):
+                    h_Jac_temp = self.jac_h(x_value)
+                    jac_hT = h_Jac_temp.T
+                else:
+                    self.update_jacobian(J=self.J_h, jac=self.jac_h, x=x_value)
+                    h_Jac_temp = self.J_h.tocsr()
+                    jac_hT = h_Jac_temp.transpose()
+                grad_sum += np.transpose(jac_hT @ np.atleast_1d(self.mu_temp + self.pen_temp * h_temp))
+
+
+
+
+        #print(g_Jac_temp)
+
         #print(grad_sum)
         return grad_sum
