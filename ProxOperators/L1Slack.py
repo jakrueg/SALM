@@ -20,21 +20,37 @@ class L1Slack(L1):
         g : :obj:`np.ndarray`, optional
             Vector to be subtracted
     """
-    def __init__(self, n,m_plus_p, sigma=1.):
+    def __init__(self, n,m,p, bl,bu, sigma=1.):
         super().__init__(sigma = sigma, g = None)
         if sigma < 0:
             raise ValueError("sigma must be non-negative")
         self.sigma = sigma
         self.n = n
-        self.m_plus_p = m_plus_p
+        self.m = m
+        self.p = p
+        self.bl = bl
+        self.bu = bu
 
     def __call__(self, x: NDArray) -> float:
-        return super().__call__(x= x[self.n:self.n + self.m_plus_p])
+        return super().__call__(x= x[self.n:self.n + self.m+self.p])
 
 
     @_check_tau
     def prox(self, x, tau):
+        st = self.sigma * tau
         x_ret = np.copy(x)
-        x_ret[self.n:self.n + self.m_plus_p] = super().prox(x[self.n:self.n + self.m_plus_p],tau)
+        # projection on bounds in x-part
+        x_ret[0:self.n] = np.maximum(np.minimum(x[0:self.n],self.bu),self.bl)
+
+        # projection onto [0,\infty) and L1-Prox for a-part
+        for i in range(0,self.m):
+            if x[self.n + i] < st:
+                x_ret[self.n + i] = x[self.n + i]**2 / (2*st)
+            else:
+                x_ret[self.n + i] = x[self.n + i]-st
+
+        #x_ret[self.n:self.n + self.m] = np.zeros(self.m)
+        # soft thresholding for b-part
+        x_ret[self.n+self.m:self.n + self.m + self.p] = super().prox(x[self.n+self.m:self.n + self.m+self.p],tau)
         return x_ret
 
