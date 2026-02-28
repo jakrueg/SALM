@@ -33,16 +33,18 @@ print(f"Sum of squares {len(sum_of_squares_probs)}")
 print(f"Other {len(other_probs)}")
 print(f"Unconstrained {len(unconstrained_probs)}")
 
+#problematic = ["LOTSCHD","BT8","DUAL3","MWRIGHT","AVION2","HIMMELBI","QC","QCNEW","EQC","HS59","HS9","PORTFL3","LSQFIT"]
 problematic = []
 
 def run_problem_set(pset):
     #pset_return = []
     for problem_name in pset:
+        print(problem_name)
         if problem_name not in problematic:
 
             problem = pycutest.import_problem(problem_name)
             num_cons = np.maximum(sum(problem.is_eq_cons),sum(1-problem.is_eq_cons))
-            if num_cons <=1000 and 1000 >= problem.n > num_cons:
+            if num_cons <=100 and 100 >= problem.n > num_cons:
                 run_cutest_problem(problem)
             pycutest.clear_cache(problem_name)
     #return pset_return
@@ -85,7 +87,7 @@ class IPOPTAdapter:
         rows, cols = np.nonzero(np.ones((m, n)))
         return rows, cols
 
-def run_cutest_problem(prob):
+def run_cutest_problem(prob : pycutest.CUTEstProblem):
 
     n = prob.n
     m_plus_p = len(prob.is_eq_cons)
@@ -110,8 +112,17 @@ def run_cutest_problem(prob):
         return prob.obj(x_temp)
 
     def f_grad(x_slack):
-        x_temp = x_slack[0:n]
-        return np.concatenate((prob.grad(x_temp),np.zeros(m+p)))
+        x_temp = np.array(x_slack[0:n], dtype = np.float64, order = 'C', copy = True)
+        """
+        print(prob.n)
+        print(x_temp.shape)
+        print(x_temp.dtype)
+        print(x_temp.flags)
+        x0 = np.array(prob.x0, dtype=np.float64, order="C", copy=True)
+        print(f"Objective: {prob.obj(x0,gradient=True)}")
+        print("Success!!")
+        """
+        return np.concatenate((prob.obj(x_temp,gradient=True)[1],np.zeros(m+p)))
     """
     result1 = panoc_plus.panoc_plus(f,f_grad,proxGenerator.make_panoc_prox(""),prob.x0)
     
@@ -259,9 +270,9 @@ def run_cutest_problem(prob):
     print("Objective (IPOPT):\n", prob.obj(ipopt_x))
     print("Constraints:\n",prob.cons(ipopt_x))
 
-    with open(f"CUTEst/linear/{prob.name}_IPOPT_result.pkl", "wb") as write_file:
+    with open(f"CUTEst/sum_of_squares/{prob.name}_IPOPT_result.pkl", "wb") as write_file:
         pickle.dump(info, write_file)
-
+    #pycutest.clear_cache(prob.name)
     #all_multipliers = np.hstack([arr.ravel() for arr in result2.v])
     all_multipliers = info['mult_g']
     max_abs_multiplier = np.max(np.abs(all_multipliers))
@@ -293,11 +304,13 @@ def run_cutest_problem(prob):
     print("Constraints:\n",-prob.cons(result_x))
 
 
-    with open(f"CUTEst/linear/{prob.name}_SALM_result.pkl", "wb") as write_file:
+    with open(f"CUTEst/sum_of_squares/{prob.name}_SALM_result.pkl", "wb") as write_file:
         pickle.dump(result, write_file)
     return result
 
-prob_test = pycutest.import_problem('KIWCRESC')
-print(prob_test.cons(prob_test.x0))
-ret_result = run_cutest_problem(prob_test)
-#run_problem_set(linear_probs)
+#test_prob = "FCCU"
+#pycutest.clear_cache(test_prob)
+#prob_test = pycutest.import_problem(test_prob)
+#print(prob_test.cons(prob_test.x0))
+#ret_result = run_cutest_problem(prob_test)
+run_problem_set(sum_of_squares_probs)
