@@ -263,7 +263,7 @@ def panoc_plus(
     lbfgs_memory=5,
     adaptive=True,
     min_gamma=1e-32,
-    max_backtracks=50,
+    max_backtracks=20,
     verbose=False,
 ):
     """
