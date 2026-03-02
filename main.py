@@ -42,21 +42,30 @@ def plot_performance(metric):
 
 
 
+solvers = ["PANOC","proxGrad"]
 
-#portfolio.eval_all_probs(algoPANOC=True,algoGurobi=False,algoProxGrad=False)
+#portfolio.eval_all_probs(solvers=solvers,write_files=True)
 
 
 
 if __name__ == '__main__':
-    prob_name = "orl200-005-a"
-    #prob_name = "pard200_a"
-    #solver = "PANOC"
-    #solver = "proxGrad"
-    #portfolio.run_problem(problem_name=prob_name,algoPANOC=True,algoProxGrad=False,algoGurobi=False)
+    prob_name = "orl200-005-h"
+    #prob_name = "pard200_b"
+
+
+    solver = "proxGrad"
+    res = portfolio.run_problem(problem_name=prob_name,solvers=solvers,write_files=False)
+    #print(res)
+    opt_res = res["PANOC"]
     #opt_res = results.load_single_portfolio(prob_name=prob_name,solver=solver)
-    #print(opt_res)
-    #df = results.load_portfolio(solver=solver)
-    #print(df)
-    #plot_performance("outer_iterations")
-    #plot_performance("inner_iterations")
+    print(opt_res)
+    opt_res2 = res["proxGrad"]
+    print(opt_res2)
+    df = results.load_portfolio(solver=solver)
+    print(df)
+    solver = "PANOC"
+    df2 = results.load_portfolio(solver=solver)
+    print(df2)
+    plot_performance("outer_iterations")
+    plot_performance("inner_iterations")
 

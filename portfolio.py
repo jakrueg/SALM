@@ -14,6 +14,7 @@ import pickle
 from pathlib import Path
 
 from ProxOperators import L0Box
+from ProxOperators import MCP
 from Algorithms import SALM
 import numpy as np
 import scipy.optimize as opt
@@ -126,19 +127,38 @@ path = Path("/home/jannis/Documents/MV/size200")
 
 
 
-def run_problem(problem_name,algoProxGrad,algoPANOC,algoGurobi):
+def run_problem(problem_name,solvers,write_files = False):
+    algoGurobi = False
+    algoProxGrad = False
+    algoPANOC = False
+
+
+    if "Gurobi" in solvers:
+        algoGurobi = True
+    if "proxGrad" in solvers:
+        algoProxGrad = True
+    if "PANOC" in solvers:
+        algoPANOC = True
+
+
     # Read Problem Data
     print(problem_name)
     Sigma = read_covariance_matrix(path, problem_name)
     mu = read_mu(path, problem_name)
     rho = read_rho(path, problem_name)
-    ub = read_ub(path, problem_name)
+    #ub = read_ub(path, problem_name)
     n = read_n(path, problem_name)
     x0 = np.ones(n) #/ n
-
-    regularization_factor = 0.2
+    if "pard200" in problem_name:
+        regularization_factor = 50
+    elif "orl200-05" in problem_name:
+        regularization_factor = 100
+    else:
+        regularization_factor = 25
     # Set up optimization problem
-    phi = L0Box.L0Box(sigma = regularization_factor, u = ub)
+    #phi = L0Box.L0Box(sigma = regularization_factor, u = ub)
+    phi = MCP.MCP(sigma = regularization_factor,delta = 0.1)
+
     #phi = pyproximal.L0(sigma =1.0)
 
     def f(x):
@@ -168,6 +188,8 @@ def run_problem(problem_name,algoProxGrad,algoPANOC,algoGurobi):
 
     g = [g0]
     jac_g = [jac_g0]
+
+    ret = {}
     """
     for i in range(n):
         def g_temp(x, i=i):
@@ -188,13 +210,15 @@ def run_problem(problem_name,algoProxGrad,algoPANOC,algoGurobi):
     if algoProxGrad:
         # SALM with proximal gradient as subproblem solver
         result = SALM.salm(f, phi=phi, x0=x0, h=[h], g=g, f_grad=f_grad, jac_h=[jac_h], jac_g=jac_g, tol=tol, maxiter=200)
-        with open(f"Data/{problem_name}_proxGrad_result.pkl", "wb") as write_file:
-            pickle.dump(result, write_file)
+        if write_files:
+            with open(f"Data/{problem_name}_proxGrad_result.pkl", "wb") as write_file:
+                pickle.dump(result, write_file)
+        ret["proxGrad"] = result
     if algoGurobi:
         # Gurobi Reference solver
         m = gp.Model()
 
-        x_gp = m.addMVar(len(mu), lb=0, ub=ub, name="x")
+        x_gp = m.addMVar(len(mu), lb=0, name="x")
 
         # bin_mask = m.addMVar(len(mu), vtype = gp.GRB.BINARY, name = "b")
         xi = m.addMVar(len(mu), lb=0, ub=1, name="xi")
@@ -210,26 +234,29 @@ def run_problem(problem_name,algoProxGrad,algoPANOC,algoGurobi):
         gurobi_scale = regularization_factor
         # Define objective function: Minimize risk
         m.setObjective(0.5 * x_gp @ Sigma @ x_gp + gurobi_scale * (len(mu) - xi.sum()), gp.GRB.MINIMIZE)
-        m.setParam('TimeLimit', 20)
+        m.setParam('TimeLimit', 60*10)
         m.optimize()
         result_gurobi = gurobi_adapter.build_result(m,x_gp.X)
-        #with open(f"Data/{problem_name}_Gurobi_result.pkl", "wb") as write_file3:
-        #    pickle.dump(result_gurobi, write_file3)
-
+        if write_files:
+            with open(f"Data/{problem_name}_Gurobi_result.pkl", "wb") as write_file3:
+                pickle.dump(result_gurobi, write_file3)
+        ret["gurobi"] = result_gurobi
     if algoPANOC:
         # SALM with PANOC+ as subproblem solver
         #x0 = result_gurobi.x
         result2 = SALM.salm(f, phi=phi, x0=x0, h=[h], g=g, f_grad=f_grad, jac_h=[jac_h], jac_g=jac_g,
-                           tol=tol, maxiter=1000, subsolver='PANOC_plus')
-        with open(f"Data/{problem_name}_PANOC_result.pkl", "wb") as write_file2:
-            pickle.dump(result2, write_file2)
+                           tol=tol, maxiter=200, subsolver='PANOC_plus')
+        if write_files:
+            with open(f"Data/{problem_name}_PANOC_result.pkl", "wb") as write_file2:
+                pickle.dump(result2, write_file2)
+        ret["PANOC"] = result2
+    return ret
 
 
-
-def eval_all_probs(algoProxGrad, algoPANOC, algoGurobi):
+def eval_all_probs(solvers,write_files):
     problem_files = sorted(path.glob("*.mat"))
     for problem in problem_files:
-        p = Process(target=run_problem, args=(problem.stem,algoProxGrad,algoPANOC,algoGurobi))
+        p = Process(target=run_problem, args=(problem.stem,solvers,write_files))
         p.start()
         p.join()
 

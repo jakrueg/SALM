@@ -20,7 +20,7 @@ class MCP(ProxOperator):
         g : :obj:`np.ndarray`, optional
             Vector to be subtracted
         delta : :obj: `float`
-            Parameter of the MCP function, must be larger than 2.
+            Parameter of the MCP function, must be larger than zero.
     """
     def __init__(self, sigma=1., g=None, delta = 2.0):
         super().__init__(None,False)
@@ -57,7 +57,7 @@ class MCP(ProxOperator):
             ind = abs_x <= thresh
             x2[ind] = 0
             ind = np.logical_and(thresh <= abs_x, abs_x <= self.delta)
-            x2[ind] = (self.delta / (self.delta ** 2 - 2 * gamma)) * self.delta * x[ind] - 2 * gamma * sign_x[ind]
+            x2[ind] = (self.delta / (self.delta ** 2 - 2 * gamma)) * (self.delta * x[ind] - 2 * gamma * sign_x[ind])
             return x2
         else:
             x3 =x.copy()

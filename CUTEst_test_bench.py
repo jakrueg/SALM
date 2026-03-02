@@ -43,7 +43,6 @@ print(f"Unconstrained {len(unconstrained_probs)}")
 problematic = ["HS268","BT8","HIMMELBI","HS59","HS9"]
 
 
-import numpy as np
 
 
 class CUTEstALWrapper:
@@ -615,7 +614,85 @@ def read_data(subfolder):
 
 #def read_problem_file(problem_name, solver):
 
-#def performance_statistics():
+def performance_statistics(df_in: pd.DataFrame):
+
+    feasible_ipopt = 0
+    feasible_salm = 0
+    fbo_ipopt = 0
+    fbo_salm = 0
+    performs_better_ipopt = 0
+    performs_better_salm = 0
+    a_small = 0
+    kkt_ipopt = 0
+    kkt_salm = 0
+
+    cons_tolerance = 1e-5
+    a_tolerance = 1e-5
+    diff_tolerance = 1e-5
+
+    problem_names = df_in["problem_name"].unique()
+    # iterate through unique problem names
+    for name in problem_names:
+        problem_rows = df_in[df_in["problem_name"] == name]
+        ipopt_feas = False
+        salm_feas = False
+        ipopt_obj = 1e20
+        salm_obj = 1e20
+        # iterate through solvers
+        for index, current_row in problem_rows.iterrows():
+
+            method_name = current_row["method_name"]
+
+            if method_name == "IPOPT":
+                ipopt_obj = current_row["obj"]
+                if current_row["constr_violation"] < cons_tolerance:
+                    feasible_ipopt += 1
+                    ipopt_feas = True
+                if current_row["status"] >= 0:
+                    kkt_ipopt +=1
+
+            if method_name == "SALM":
+                salm_obj = current_row["obj"]
+                if current_row["constr_violation"] < cons_tolerance:
+                    feasible_salm += 1
+                    salm_feas = True
+                if current_row["norm_a_plus_b"] < a_tolerance:
+                    a_small += 1
+                if current_row["status"] == 0:
+                    kkt_salm += 1
+
+        if ipopt_feas and not salm_feas:
+            performs_better_ipopt += 1
+        elif salm_feas and not ipopt_feas:
+            performs_better_salm += 1
+
+        if ipopt_feas and salm_feas:
+            f_diff = (ipopt_obj - salm_obj) / (np.maximum(1.0,np.abs(np.minimum(ipopt_obj,salm_obj))))
+            if f_diff >= diff_tolerance:
+                fbo_ipopt += 1
+                performs_better_ipopt += 1
+            elif f_diff <= -diff_tolerance:
+                fbo_salm += 1
+                performs_better_salm += 1
+
+    ipopt_dict = {
+            "method_name": "IPOPT",
+            "feasible" : feasible_ipopt,
+            "feasible, better objective" : fbo_ipopt,
+            "performs better" : performs_better_ipopt,
+            "a small": 0,
+            "KKT found" : kkt_ipopt
+        }
+    salm_dict = {
+        "method_name": "SALM",
+        "feasible": feasible_salm,
+        "feasible, better objective": fbo_salm,
+        "performs better": performs_better_salm,
+        "a small": a_small,
+        "KKT found": kkt_salm
+    }
+    return pd.DataFrame([ipopt_dict,salm_dict])
+
 
 @dataclass
 class DataLine:
@@ -635,10 +712,13 @@ class DataLine:
 #print(prob_test.cons(prob_test.x0))
 #ret_result = run_cutest_problem(test_build)
 
-run_problem_set(quadratic_probs)
+#run_problem_set(quadratic_probs)
 
 
-problem_class = "quadratic"
+problem_class = "linear"
 df = read_data(problem_class)
-df.to_csv(f"csv/{problem_class}.csv", index=False)
+stat = performance_statistics(df)
+#print(stat)
+stat.to_csv(f"csv/statistics/{problem_class}_stats.csv")
+#df.to_csv(f"csv/{problem_class}.csv", index=False)
 #print(df[["problem_name", "obj","constr_violation", "status","norm_a_plus_b"]])
