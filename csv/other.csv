@@ -1,0 +1,59 @@
+problem_name,method_name,obj,constr_violation,norm_a_plus_b,status,status_msg,outer_iterations,inner_iterations
+AVION2,IPOPT,94680127.73022282,1.1368683772161603e-12,0.0,-1,b'Maximum number of iterations exceeded (can be specified by an option).',0,0
+AVION2,SALM,50002108.895225614,86.90589635943479,86.9058961535416,0,Success! Converged in 77 iterations with 38066 inner iterations.,77,38066
+BT7,IPOPT,306.5,8.881784197001252e-16,0.0,0,"b'Algorithm terminated successfully at a locally optimal point, satisfying the convergence tolerances (can be specified by options).'",0,0
+BT7,SALM,306.49834412073324,8.153686273937311e-07,0.0,0,Success! Converged in 53 iterations with 1250 inner iterations.,53,1250
+EQC,IPOPT,-828.0206177581024,0.0,0.0,1,"b'Algorithm stopped at a point that was converged, not to ""desired"" tolerances, but to ""acceptable"" tolerances (see the acceptable-... options).'",0,0
+EQC,SALM,-829.5477053187734,0.0,0.0,0,Success! Converged in 6 iterations with 593 inner iterations.,6,593
+HIMMELBJ,IPOPT,-1909.9472784482566,1.3245646924055269e-08,0.0,-2,"b""Restoration phase failed, algorithm doesn't know how to proceed.""",0,0
+HIMMELBJ,SALM,-1898.6630960144935,0.8130448721758153,0.8130448721757935,1,Failure! Maximum iterations reached.,100,50000
+HIMMELP2,IPOPT,-62.05393553382589,0.0,0.0,0,"b'Algorithm terminated successfully at a locally optimal point, satisfying the convergence tolerances (can be specified by options).'",0,0
+HIMMELP2,SALM,-62.05393553382589,0.0,0.0,0,Success! Converged in 6 iterations with 14 inner iterations.,6,14
+HONG,IPOPT,22.571087363489063,1.1102230246251565e-16,0.0,0,"b'Algorithm terminated successfully at a locally optimal point, satisfying the convergence tolerances (can be specified by options).'",0,0
+HONG,SALM,22.571058948200957,6.507077355277779e-07,0.0,0,Success! Converged in 48 iterations with 1811 inner iterations.,48,1811
+HS105,IPOPT,1136.3073035742302,0.0,0.0,-3,b'An unrecoverable error occurred while Ipopt tried to compute the search direction.',0,0
+HS105,SALM,1136.3073035740774,0.0,2.714405857983632e-36,0,Success! Converged in 6 iterations with 1961 inner iterations.,6,1961
+HS112,IPOPT,-47.76109085936587,8.326672684688674e-17,0.0,0,"b'Algorithm terminated successfully at a locally optimal point, satisfying the convergence tolerances (can be specified by options).'",0,0
+HS112,SALM,-47.76110563092606,4.5365272911823684e-07,0.0,0,Success! Converged in 52 iterations with 16886 inner iterations.,52,16886
+HS117,IPOPT,32.34867757959708,9.976649728571374e-09,0.0,0,"b'Algorithm terminated successfully at a locally optimal point, satisfying the convergence tolerances (can be specified by options).'",0,0
+HS117,SALM,32.348677831560934,8.169306182637115e-07,2.77242779829105e-13,0,Success! Converged in 39 iterations with 18665 inner iterations.,39,18665
+HS119,IPOPT,244.89969542328956,5.093486862546191e-16,0.0,0,"b'Algorithm terminated successfully at a locally optimal point, satisfying the convergence tolerances (can be specified by options).'",0,0
+HS119,SALM,244.89958679694965,6.261368424437253e-07,0.0,0,Success! Converged in 54 iterations with 9431 inner iterations.,54,9431
+HS29,IPOPT,-22.6274170050306,9.985878790530478e-09,0.0,0,"b'Algorithm terminated successfully at a locally optimal point, satisfying the convergence tolerances (can be specified by options).'",0,0
+HS29,SALM,-22.62741747478519,6.743192066949177e-07,3.037798727350766e-11,0,Success! Converged in 41 iterations with 2112 inner iterations.,41,2112
+HS33,IPOPT,-4.585786551132488,9.943574730337378e-09,0.0,0,"b'Algorithm terminated successfully at a locally optimal point, satisfying the convergence tolerances (can be specified by options).'",0,0
+HS33,SALM,-4.000000238336337,9.533452915988505e-07,3.2884672582251474e-10,0,Success! Converged in 37 iterations with 493 inner iterations.,37,493
+HS36,IPOPT,-3300.00002089997,9.99991200956174e-09,0.0,0,"b'Algorithm terminated successfully at a locally optimal point, satisfying the convergence tolerances (can be specified by options).'",0,0
+HS36,SALM,-3300.000087853249,7.986659014136421e-07,2.0897967724925765e-08,0,Success! Converged in 54 iterations with 796 inner iterations.,54,796
+HS37,IPOPT,-3456.0000014399907,9.999929773130134e-09,0.0,0,"b'Algorithm terminated successfully at a locally optimal point, satisfying the convergence tolerances (can be specified by options).'",0,0
+HS37,SALM,-3456.000076133475,5.287046889179692e-07,7.737124448936763e-09,0,Success! Converged in 55 iterations with 2023 inner iterations.,55,2023
+HS41,IPOPT,1.9259259237137036,0.0,0.0,0,"b'Algorithm terminated successfully at a locally optimal point, satisfying the convergence tolerances (can be specified by options).'",0,0
+HS41,SALM,1.9259258317359054,8.477117812155655e-07,0.0,0,Success! Converged in 35 iterations with 102 inner iterations.,35,102
+HS49,IPOPT,4.403235362030046e-16,8.881784197001252e-16,0.0,0,"b'Algorithm terminated successfully at a locally optimal point, satisfying the convergence tolerances (can be specified by options).'",0,0
+HS49,SALM,1.958494378486156e-10,4.6295419942055105e-08,0.0,0,Success! Converged in 6 iterations with 77 inner iterations.,6,77
+HS50,IPOPT,1.1570461898985784e-19,8.881784197001252e-16,0.0,0,"b'Algorithm terminated successfully at a locally optimal point, satisfying the convergence tolerances (can be specified by options).'",0,0
+HS50,SALM,5.37782947025931e-15,3.208017806954899e-08,0.0,0,Success! Converged in 6 iterations with 46 inner iterations.,6,46
+HS54,IPOPT,-0.908074734681622,0.0,0.0,0,"b'Algorithm terminated successfully at a locally optimal point, satisfying the convergence tolerances (can be specified by options).'",0,0
+HS54,SALM,-1.151460796641976e-72,0.0,0.0,0,Success! Converged in 6 iterations with 84 inner iterations.,6,84
+HS62,IPOPT,-26272.514647971588,5.551115123125783e-17,0.0,0,"b'Algorithm terminated successfully at a locally optimal point, satisfying the convergence tolerances (can be specified by options).'",0,0
+HS62,SALM,-26272.519396892876,7.435368073252513e-07,0.0,0,Success! Converged in 56 iterations with 1479 inner iterations.,56,1479
+HUBFIT,IPOPT,0.016893492734545486,9.917685173110868e-09,0.0,0,"b'Algorithm terminated successfully at a locally optimal point, satisfying the convergence tolerances (can be specified by options).'",0,0
+HUBFIT,SALM,0.016893381553100186,9.251249146469132e-07,1.7406132429719288e-09,0,Success! Converged in 35 iterations with 443 inner iterations.,35,443
+LIN,IPOPT,-0.017577522467565332,2.7755575615628914e-17,0.0,0,"b'Algorithm terminated successfully at a locally optimal point, satisfying the convergence tolerances (can be specified by options).'",0,0
+LIN,SALM,,,,1,Failure! Maximum iterations reached.,100,50000
+LOADBAL,IPOPT,0.45285103913274116,1.3322676295501878e-14,0.0,0,"b'Algorithm terminated successfully at a locally optimal point, satisfying the convergence tolerances (can be specified by options).'",0,0
+LOADBAL,SALM,,,,1,Failure! Maximum iterations reached.,100,50000
+LOOTSMA,IPOPT,1.4142134488675604,9.943432077719194e-09,0.0,0,"b'Algorithm terminated successfully at a locally optimal point, satisfying the convergence tolerances (can be specified by options).'",0,0
+LOOTSMA,SALM,1.4142133240296777,6.741369302787348e-07,2.1276516679410762e-10,0,Success! Converged in 37 iterations with 305 inner iterations.,37,305
+MWRIGHT,IPOPT,24.978809538861288,8.881784197001252e-16,0.0,0,"b'Algorithm terminated successfully at a locally optimal point, satisfying the convergence tolerances (can be specified by options).'",0,0
+MWRIGHT,SALM,-42.36650354289812,3.727060321470704,3.7270597810707757,0,Success! Converged in 51 iterations with 5612 inner iterations.,51,5612
+ODFITS,IPOPT,-2380.0267754030824,5.684341886080802e-14,0.0,0,"b'Algorithm terminated successfully at a locally optimal point, satisfying the convergence tolerances (can be specified by options).'",0,0
+ODFITS,SALM,-2380.026776284686,9.158979139556322e-07,0.0,0,Success! Converged in 41 iterations with 985 inner iterations.,41,985
+QC,IPOPT,-956.537857653441,0.0,0.0,0,"b'Algorithm terminated successfully at a locally optimal point, satisfying the convergence tolerances (can be specified by options).'",0,0
+QC,SALM,-956.5377333039573,0.0,0.0,0,Success! Converged in 6 iterations with 349 inner iterations.,6,349
+QCNEW,IPOPT,-806.5219397971208,0.0,0.0,0,"b'Algorithm terminated successfully at a locally optimal point, satisfying the convergence tolerances (can be specified by options).'",0,0
+QCNEW,SALM,-806.5218543888329,0.0,0.0,0,Success! Converged in 6 iterations with 96 inner iterations.,6,96
+STANCMIN,IPOPT,4.24999995878,9.996521832533745e-09,0.0,0,"b'Algorithm terminated successfully at a locally optimal point, satisfying the convergence tolerances (can be specified by options).'",0,0
+STANCMIN,SALM,4.249998016990086,6.84560498065423e-07,8.924509869223194e-10,0,Success! Converged in 45 iterations with 3939 inner iterations.,45,3939
+ZY2,IPOPT,1.9999998775299994,9.959999935915675e-09,0.0,0,"b'Algorithm terminated successfully at a locally optimal point, satisfying the convergence tolerances (can be specified by options).'",0,0
+ZY2,SALM,1.9999997616937448,9.532249638510848e-07,4.494647684658394e-10,0,Success! Converged in 37 iterations with 275 inner iterations.,37,275
