@@ -29,24 +29,6 @@ class OptimizationResult:
 def build_path(filename,solver):
     return Path("Data") / f"{filename}_{solver}_result.pkl"
 
-"""
-with open("Data/orl200-005-a_Gurobi_result.pkl", "rb") as f:
-    result = pickle.load(f)
-
-result_x = result.x
-
-#result = SALM_PANOC.salm(f, phi=phi,  x0=x0, h=[h], g=g, f_grad=f_grad, jac_h=[jac_h], jac_g=jac_g,
-#                   tol_grad=tol_grad,tol_cons=tol_cons, maxiter=200)
-
-print(result.message)
-print("Optimized solution (SALM-PANOC+):\n", result_x)
-print("Objective:", result.obj)
-print("Inner iterations:", result.inner_iterations)
-#nnz = int(np.count_nonzero((np.abs(result_x) > tol)))
-print(f"Non-zero (over threshold):{result.nnz} of {len(result_x)}")
-#print("Return:", mu @ result_x)
-print("Budget:", np.sum(result_x))
-"""
 def load_portfolio(solver):
     path = Path("/home/jannis/Documents/MV/size200")
     problem_files=sorted(path.glob("*.mat"))

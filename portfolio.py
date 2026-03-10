@@ -1,10 +1,11 @@
-import resource
+#import resource
+# Limit to 8 GB
+#memory_limit = 24 * 1024 * 1024 * 1024
+#resource.setrlimit(resource.RLIMIT_AS, (memory_limit, memory_limit))
 
 import pyproximal
 
-# Limit to 8 GB
-memory_limit = 24 * 1024 * 1024 * 1024
-resource.setrlimit(resource.RLIMIT_AS, (memory_limit, memory_limit))
+
 
 from scipy.sparse import lil_matrix
 
@@ -18,7 +19,7 @@ from ProxOperators import MCP
 from Algorithms import SALM
 import numpy as np
 import scipy.optimize as opt
-import gurobipy as gp
+#import gurobipy as gp
 import warnings
 
 from Utilities import gurobi_adapter
@@ -210,9 +211,9 @@ def run_problem(problem_name,solvers,write_files = False):
     if algoProxGrad:
         # SALM with proximal gradient as subproblem solver
         result = SALM.salm(f, phi=phi, x0=x0, h=[h], g=g, f_grad=f_grad, jac_h=[jac_h], jac_g=jac_g, tol=tol, maxiter=200)
-        if write_files:
-            with open(f"Data/{problem_name}_proxGrad_result.pkl", "wb") as write_file:
-                pickle.dump(result, write_file)
+        #if write_files:
+        #    with open(f"Data/{problem_name}_proxGrad_result.pkl", "wb") as write_file:
+        #        pickle.dump(result, write_file)
         ret["proxGrad"] = result
     if algoGurobi:
         # Gurobi Reference solver
@@ -246,9 +247,9 @@ def run_problem(problem_name,solvers,write_files = False):
         #x0 = result_gurobi.x
         result2 = SALM.salm(f, phi=phi, x0=x0, h=[h], g=g, f_grad=f_grad, jac_h=[jac_h], jac_g=jac_g,
                            tol=tol, maxiter=200, subsolver='PANOC_plus')
-        if write_files:
-            with open(f"Data/{problem_name}_PANOC_result.pkl", "wb") as write_file2:
-                pickle.dump(result2, write_file2)
+        #if write_files:
+        #    with open(f"Data/{problem_name}_PANOC_result.pkl", "wb") as write_file2:
+        #        pickle.dump(result2, write_file2)
         ret["PANOC"] = result2
     return ret
 
