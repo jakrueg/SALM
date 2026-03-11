@@ -24,8 +24,6 @@ import warnings
 
 from Utilities import gurobi_adapter
 
-#import SALM_PANOC
-#import proxGenerator
 warnings.simplefilter(action="ignore", category=FutureWarning)
 
 
@@ -88,8 +86,8 @@ tol_cons =1e-6
 
 
 
-#path = Path("/home/jannis/Documents/MV/size200")
-path = Path("C:/Users/jkooo/Downloads/MV/size200")
+path = Path("/home/jannis/Documents/MV/size200")
+#path = Path("C:/Users/jkooo/Downloads/MV/size200")
 #filename = "orl200-05-a"
 
 
@@ -120,7 +118,7 @@ def run_problem(problem_name,solvers,write_files = False):
     if "pard200" in problem_name:
         regularization_factor = 50
     elif "orl200-05" in problem_name:
-        regularization_factor = 130
+        regularization_factor = 100
     else:
         regularization_factor = 25
     # Set up optimization problem
@@ -144,6 +142,8 @@ def run_problem(problem_name,solvers,write_files = False):
     def g0(x):
         return rho - np.dot(mu, x)  # minimum expected return
 
+    #def g_bigger_zero(x):
+    #    return -1.0 * x
 
     # Jacobians for the constraints
     def jac_h(x):
@@ -152,6 +152,9 @@ def run_problem(problem_name,solvers,write_files = False):
 
     def jac_g0(x):
         return -1 * mu  # Jacobian of inequality constraint g0(x)
+
+    #def jac_g_bigger_zero(x):
+    #    return -np.eye(n)
 
 
     g = [g0]
@@ -178,9 +181,9 @@ def run_problem(problem_name,solvers,write_files = False):
     if algoProxGrad:
         # SALM with proximal gradient as subproblem solver
         result = SALM.salm(f, phi=phi, x0=x0, h=[h], g=g, f_grad=f_grad, jac_h=[jac_h], jac_g=jac_g, tol=tol, maxiter=200)
-        #if write_files:
-        #    with open(f"Data/{problem_name}_proxGrad_result.pkl", "wb") as write_file:
-        #        pickle.dump(result, write_file)
+        if write_files:
+            with open(f"Data/{problem_name}_proxGrad_result.pkl", "wb") as write_file:
+                pickle.dump(result, write_file)
         ret["proxGrad"] = result
     if algoGurobi:
         # Gurobi Reference solver
@@ -214,9 +217,9 @@ def run_problem(problem_name,solvers,write_files = False):
         #x0 = result_gurobi.x
         result2 = SALM.salm(f, phi=phi, x0=x0, h=[h], g=g, f_grad=f_grad, jac_h=[jac_h], jac_g=jac_g,
                            tol=tol, maxiter=200, subsolver='PANOC_plus')
-        #if write_files:
-        #    with open(f"Data/{problem_name}_PANOC_result.pkl", "wb") as write_file2:
-        #        pickle.dump(result2, write_file2)
+        if write_files:
+            with open(f"Data/{problem_name}_PANOC_result.pkl", "wb") as write_file2:
+                pickle.dump(result2, write_file2)
         ret["PANOC"] = result2
     return ret
 

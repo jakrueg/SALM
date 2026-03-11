@@ -21,8 +21,8 @@ def salm(f,
          gamma=2,
          lam0=None,
          mu0=None,
-         lam_max=1e20,
-         mu_max=1e20,
+         lam_max=1e8,
+         mu_max=1e8,
          tol=1e-6,
          tol_prim = None,
          tol_dual = None,
@@ -191,6 +191,7 @@ def salm(f,
         previous_eq_norm = eq_norm
         x = x_new
 
+    print(f"u = {u}, v = {v}")
     if solved:
         return OptimizationResult(x = x,
                               success = True,

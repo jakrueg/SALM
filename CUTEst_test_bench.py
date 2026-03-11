@@ -491,7 +491,7 @@ def run_cutest_problem(problem_data
     print("Objective (IPOPT):\n", prob.obj(ipopt_x))
     #print("Constraints:\n",prob.cons(ipopt_x))
 
-    with open(f"CUTEst/quadratic/{prob.name}_IPOPT_result.pkl", "wb") as write_file:
+    with open(f"CUTEst/{problem_class}/{prob.name}_IPOPT_result.pkl", "wb") as write_file:
         pickle.dump(info, write_file)
     #pycutest.clear_cache(prob.name)
     #all_multipliers = np.hstack([arr.ravel() for arr in result2.v])
@@ -525,7 +525,7 @@ def run_cutest_problem(problem_data
     #print("Constraints:\n",-prob.cons(result_x))
 
 
-    with open(f"CUTEst/quadratic/{prob.name}_SALM_result.pkl", "wb") as write_file:
+    with open(f"CUTEst/{problem_class}/{prob.name}_SALM_result.pkl", "wb") as write_file:
         pickle.dump(result, write_file)
     return result
 
@@ -627,7 +627,7 @@ def performance_statistics(df_in: pd.DataFrame):
     kkt_salm = 0
 
     cons_tolerance = 1e-5
-    a_tolerance = 1e-5
+    a_tolerance = 1e-3
     diff_tolerance = 1e-5
 
     problem_names = df_in["problem_name"].unique()
@@ -711,14 +711,14 @@ class DataLine:
 #test_build = build_cutest_problem(prob_test)
 #print(prob_test.cons(prob_test.x0))
 #ret_result = run_cutest_problem(test_build)
+problem_class = "sum_of_squares"
 
 #run_problem_set(quadratic_probs)
 
 
-problem_class = "linear"
 df = read_data(problem_class)
 stat = performance_statistics(df)
 #print(stat)
-stat.to_csv(f"csv/statistics/{problem_class}_stats.csv")
+stat.to_csv(f"csv/statistics/{problem_class}_stats.csv", index = False)
 #df.to_csv(f"csv/{problem_class}.csv", index=False)
 #print(df[["problem_name", "obj","constr_violation", "status","norm_a_plus_b"]])
