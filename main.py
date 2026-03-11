@@ -118,13 +118,13 @@ def generate_data():
 
 solvers = ["PANOC","proxGrad"]
 
-portfolio.eval_all_probs(solvers=solvers,write_files=True)
+#portfolio.eval_all_probs(solvers=solvers,write_files=True)
 
 
 
 if __name__ == '__main__':
-    prob_name = "orl200-05-e"
-    #prob_name = "pard200_c"
+    #prob_name = "orl200-05-e"
+    prob_name = "pard200_c"
 
     #df = generate_data()
     #df.to_csv(f"csv/portfolio/portfolio.csv", index = False)

@@ -184,7 +184,7 @@ def salm(f,
                 pen = np.minimum(gamma * pen, pen_max)
             # Decrease inner tolerance
             inner_tol = np.maximum(kappa_tol * inner_tol,tol_dual)
-        # set up the constraint norms and multipiers for the next loop
+        # set up the constraint norms and multipliers for the next loop
         u = np.clip(lam_new, 0.0, lam_max)
         v = np.clip(mu_new, -mu_max, mu_max)
         previous_ineq_norm = ineq_norm

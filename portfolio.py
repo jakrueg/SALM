@@ -3,23 +3,23 @@
 #memory_limit = 24 * 1024 * 1024 * 1024
 #resource.setrlimit(resource.RLIMIT_AS, (memory_limit, memory_limit))
 
-import pyproximal
+#import pyproximal
 
 
 
-from scipy.sparse import lil_matrix
+#from scipy.sparse import lil_matrix
 
 
 from multiprocessing import Process
 import pickle
 from pathlib import Path
 
-from ProxOperators import L0Box
+#from ProxOperators import L0Box
 from ProxOperators import MCP
 from Algorithms import SALM
 import numpy as np
-import scipy.optimize as opt
-#import gurobipy as gp
+#import scipy.optimize as opt
+import gurobipy as gp
 import warnings
 
 from Utilities import gurobi_adapter
@@ -83,46 +83,13 @@ def read_n(path, filename):
         n_temp = int(file.readline())
     return n_temp
 
-"""
-def generate_portfolio_famafrench():
-    url = "https://mba.tuck.dartmouth.edu/pages/faculty/ken.french/ftp/30_Industry_Portfolios_CSV.zip"
-
-    r = requests.get(url)
-    z = zipfile.ZipFile(io.BytesIO(r.content))
-
-    df = pd.read_csv(
-        z.open(z.namelist()[0]),
-        skiprows=11,
-        index_col=0
-    )
-
-    df = df[df.index.astype(str).str.match(r"^\d{6}$")]
-
-    df.index = pd.to_datetime(df.index, format="%Y%m")
-
-    industries = df.apply(pd.to_numeric) / 100.0
-    returns = industries
-    Sigma_ret = returns.cov().values
-    mu_ret = returns.mean().values
-    return Sigma_ret, mu_ret
-"""
-
-#n = 25
 tol = 1e-6
 tol_cons =1e-6
-#Sigma, mu = generate_portfolio_famafrench()
-#n = len(mu)
-
-"""
-n = 40
-Sigma, mu = generate_portfolio_random(n)
-#print(f"Sigma: {Sigma}")
-rho = 1e-3
-"""
-#regu = 1/n
 
 
-path = Path("/home/jannis/Documents/MV/size200")
+
+#path = Path("/home/jannis/Documents/MV/size200")
+path = Path("C:/Users/jkooo/Downloads/MV/size200")
 #filename = "orl200-05-a"
 
 
@@ -153,7 +120,7 @@ def run_problem(problem_name,solvers,write_files = False):
     if "pard200" in problem_name:
         regularization_factor = 50
     elif "orl200-05" in problem_name:
-        regularization_factor = 100
+        regularization_factor = 130
     else:
         regularization_factor = 25
     # Set up optimization problem
