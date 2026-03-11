@@ -3,46 +3,33 @@ import resource
 
 import cyipopt
 import pandas as pd
-from scipy._lib.cobyqa import problem
 
-# Limit to 24 GB
+# Limit to 24 GB memory
 memory_limit = 24 * 1024 * 1024 * 1024
 resource.setrlimit(resource.RLIMIT_AS, (memory_limit, memory_limit))
 
-
-# Example: using problem classification system
 import numpy as np
 import pycutest
-#import pyproximal
 
 from pathlib import Path
 from ProxOperators import L1Slack
 from Algorithms import SALM
 from Utilities import jacobian
 from dataclasses import dataclass
-#import scipy.optimize as opt
 
-
-
-
-unconstrained_probs = pycutest.find_problems(objective="quadratic", constraints="unconstrained")
-
-
-linear_probs = pycutest.find_problems(objective='linear', constraints='linear quadratic general',m=[0,1000])
-quadratic_probs = pycutest.find_problems(objective='quadratic', constraints='linear quadratic general',m=[0,1000])
-sum_of_squares_probs = pycutest.find_problems(objective='sum of squares', constraints='linear quadratic general',m=[0,1000])
-other_probs = pycutest.find_problems(objective='other', constraints='linear quadratic general',m=[0,1000])
+linear_probs = pycutest.find_problems(objective='linear', constraints='linear quadratic general', m=[0, 1000])
+quadratic_probs = pycutest.find_problems(objective='quadratic', constraints='linear quadratic general', m=[0, 1000])
+sum_of_squares_probs = pycutest.find_problems(objective='sum of squares', constraints='linear quadratic general',
+                                              m=[0, 1000])
+other_probs = pycutest.find_problems(objective='other', constraints='linear quadratic general', m=[0, 1000])
 
 print(f"Linear {len(linear_probs)}")
 print(f"Quadratic {len(quadratic_probs)}")
 print(f"Sum of squares {len(sum_of_squares_probs)}")
 print(f"Other {len(other_probs)}")
-print(f"Unconstrained {len(unconstrained_probs)}")
 
-#problematic = ["LOTSCHD","BT8","DUAL3","MWRIGHT","AVION2","HIMMELBI","QC","QCNEW","EQC","HS59","HS9","PORTFL3","LSQFIT"]
-problematic = ["HS268","BT8","HIMMELBI","HS59","HS9"]
-
-
+# Problems that are filtered out due to having a faulty PyCUTEst implementation
+problematic = ["HS268", "BT8", "HIMMELBI", "HS59", "HS9"]
 
 
 class CUTEstALWrapper:
@@ -67,7 +54,7 @@ class CUTEstALWrapper:
         cl = problem.cl
         cu = problem.cu
 
-        # Storage
+        # storage
         eq_idx = []
         eq_rhs = []
 
@@ -75,33 +62,33 @@ class CUTEstALWrapper:
         ineq_rhs = []
         ineq_sign = []
 
-        # Classify constraints
+        # classify constraints
         for i in range(self.m):
             li = cl[i]
             ui = cu[i]
 
             lower_finite = li > -inf
-            upper_finite = ui <  inf
+            upper_finite = ui < inf
 
-            # Equality
+            # equality
             if lower_finite and upper_finite and np.isclose(li, ui):
                 eq_idx.append(i)
                 eq_rhs.append(li)
 
             else:
-                # Upper bound: c_i(x) <= ui
+                # upper bound: c_i(x) <= ui
                 if upper_finite:
                     ineq_idx.append(i)
                     ineq_rhs.append(ui)
                     ineq_sign.append(+1.0)
 
-                # Lower bound: li <= c_i(x)
+                # lower bound: li <= c_i(x)
                 if lower_finite:
                     ineq_idx.append(i)
                     ineq_rhs.append(li)
                     ineq_sign.append(-1.0)
 
-        # Convert to arrays
+        # convert to arrays
         self.eq_idx = np.array(eq_idx, dtype=int)
         self.eq_rhs = np.array(eq_rhs)
 
@@ -119,7 +106,6 @@ class CUTEstALWrapper:
     def f_grad(self, x):
         """
         Returns objective and gradient.
-        Uses joint evaluation for stability.
         """
         f, g = self.problem.obj(x, gradient=True)
         return f, g
@@ -223,33 +209,36 @@ class CUTEstALWrapper:
         return self.problem.jprod(x=x, p=full, transpose=True)
 
 
-
 def run_problem_set(pset):
-    #pset_return = []
+    """
+    Method for running a whole set of CUTEst problems identified by their problem name strings. It iterates through the
+    problem names and runs on each the methods to
+        - load the problem through PyCUTEst
+        - build the problem for input in SALM
+        - solve the problem
+
+    Parameters
+    ----------
+    pset : array of strings
+        array containing the problem names
+
+    """
     for problem_name in pset:
         print(problem_name)
         if problem_name not in problematic:
 
             problem = pycutest.import_problem(problem_name)
-            num_cons = np.maximum(sum(problem.is_eq_cons),sum(1-problem.is_eq_cons))
-            if num_cons <=100 and 100 >= problem.n > num_cons:
+            num_cons = np.maximum(sum(problem.is_eq_cons), sum(1 - problem.is_eq_cons))
+            if num_cons <= 100 and 100 >= problem.n > num_cons:
                 problem_data = build_cutest_problem(problem)
                 run_cutest_problem(problem_data)
             pycutest.clear_cache(problem_name)
-    #return pset_return
 
-#linear_probs_filtered = filter_problem_set(linear_probs)
-#quadratic_probs_filtered = filter_problem_set(quadratic_probs)
-#sum_of_squares_probs_filtered = filter_problem_set(sum_of_squares_probs)
-#other_probs_filtered = filter_problem_set(other_probs)
-
-#print(len(linear_probs_filtered))
-#print(len(sum_of_squares_probs_filtered))
-
-#print(linear_probs[:20])
-#print(unconstrained_probs[:20])
 
 class IPOPTAdapter:
+    """
+        Wraps a PyCUTEst for input into IPOPT
+        """
     def __init__(self, prob):
         self.prob = prob
 
@@ -276,24 +265,30 @@ class IPOPTAdapter:
         rows, cols = np.nonzero(np.ones((m, n)))
         return rows, cols
 
-def build_cutest_problem(prob : pycutest.CUTEstProblem):
 
+def build_cutest_problem(prob: pycutest.CUTEstProblem):
+    """
+        Method for building all necessary inputs for the SALM algorithm from a PyCUTEst problem.
+
+        Parameters
+        ----------
+        prob : pycutest.CUTEstProblem
+            PyCUTEst problem object
+
+        Returns
+        -------
+        dict
+            Dictionary containing all necessary inputs for the SALM algorithm
+
+    """
     n = prob.n
     m_plus_p = len(prob.is_eq_cons)
     p = sum(prob.is_eq_cons)
-    #m = sum(1-prob.is_eq_cons)
     print(prob.name)
-    #[eq_start, eq_end, ineq_start, ineq_end] =   [0,p,p,mp] #if prob.eq_cons_first else [m,mp,0,m]
-
     constraint_wrapper = CUTEstALWrapper(prob)
     m = constraint_wrapper.n_ineq
-    print(f"Dimension is {n}, {m_plus_p} (calculated) {prob.m} (reported) constraints with {m} inequality and {p} equality")
-    #print(prob.is_eq_cons)
-    #print(prob.eq_cons_first)
-    #print(f"Equality constraints from {eq_start} to {eq_end}")
-    #print(f"Inequality constraints from {ineq_start} to {ineq_end}")
-    #c=(prob.cons(prob.x0,index=0, gradient=True)[-1])[eq_start:eq_end]
-    #print(c)
+    print(
+        f"Dimension is {n}, {m_plus_p} constraints with {m} inequality and {p} equality")
 
     #------------------------------------------------
     # Convention: x_slack = [x,a,b] with len(x)=n, len(a)=m, len(b)=p
@@ -302,39 +297,8 @@ def build_cutest_problem(prob : pycutest.CUTEstProblem):
         return prob.obj(x_temp)
 
     def f_grad(x_slack):
-        x_temp = np.array(x_slack[0:n], dtype = np.float64, order = 'C', copy = True)
-        """
-        print(prob.n)
-        print(x_temp.shape)
-        print(x_temp.dtype)
-        print(x_temp.flags)
-        x0 = np.array(prob.x0, dtype=np.float64, order="C", copy=True)
-        print(f"Objective: {prob.obj(x0,gradient=True)}")
-        print("Success!!")
-        """
-        return np.concatenate((prob.obj(x_temp,gradient=True)[1],np.zeros(m+p)))
-    """
-    result1 = panoc_plus.panoc_plus(f,f_grad,proxGenerator.make_panoc_prox(""),prob.x0)
-    
-    print(result1.x)
-    print(prob.obj(result1.x))
-    print(np.linalg.norm(prob.grad(result1.x)))
-    
-    
-    result2 = opt.minimize(fun=f,
-                           x0=prob.x0,
-                           jac=f_grad,
-                           options={
-                               # "verbose": 3,
-                               "gtol": 1e-6
-                           })
-    
-    print(result2.x)
-    print(prob.obj(result2.x))
-    print(np.linalg.norm(prob.grad(result2.x)))
-    
-    """
-    constraints = []
+        x_temp = np.array(x_slack[0:n], dtype=np.float64, order='C', copy=True)
+        return np.concatenate((prob.obj(x_temp, gradient=True)[1], np.zeros(m + p)))
 
     if m < 1:
         # only equality constraints
@@ -343,39 +307,26 @@ def build_cutest_problem(prob : pycutest.CUTEstProblem):
     else:
         def g(x_slack):
             x_temp = x_slack[0:n]
-            a_temp = x_slack[n:n+m]
+            a_temp = x_slack[n:n + m]
             return constraint_wrapper.g(x_temp) + a_temp
-            #return -prob.cons(x_temp)[~prob.is_eq_cons]+a_temp
-
 
         def jac_g_matrix(x_slack):
             x_temp = x_slack[0:n]
-            #a_temp = x_slack[n:n + m]
-
-            #x_part = -(prob.cons(x_temp, gradient=True)[-1])[~prob.is_eq_cons]
             x_part = constraint_wrapper.Jg(x_temp)
             a_part = np.eye(m)
-            if p>0:
-                b_part = np.zeros((m,p))
-                return np.hstack((x_part,a_part,b_part))
-            return np.hstack((x_part,a_part))
+            if p > 0:
+                b_part = np.zeros((m, p))
+                return np.hstack((x_part, a_part, b_part))
+            return np.hstack((x_part, a_part))
 
-        def jac_g_product(x_slack,vec):
+        def jac_g_product(x_slack, vec):
             x_temp = x_slack[0:n]
-            #vec_full = np.zeros(m+p)
-            #vec_full[~prob.is_eq_cons] = vec
-
-            #x_part = -prob.jprod(x=x_temp, transpose = True, p=vec_full)
-            x_part = constraint_wrapper.JgT_v(x_temp,vec)
+            x_part = constraint_wrapper.JgT_v(x_temp, vec)
             b_part = np.zeros(p)
 
-            return np.concatenate((x_part, vec,b_part))
+            return np.concatenate((x_part, vec, b_part))
 
-        jac_g = jacobian.Jacobian(jac = jac_g_matrix,jac_prod=jac_g_product)
-
-
-
-
+        jac_g = jacobian.Jacobian(jac=jac_g_matrix, jac_prod=jac_g_product)
 
     if p < 1:
         # only inequality constraints
@@ -384,91 +335,88 @@ def build_cutest_problem(prob : pycutest.CUTEstProblem):
     else:
         def h(x_slack):
             x_temp = x_slack[0:n]
-            b_temp = x_slack[n+m:n+m+p]
+            b_temp = x_slack[n + m:n + m + p]
             return constraint_wrapper.h(x_temp) + b_temp
-            #return prob.cons(x_temp)[prob.is_eq_cons] + b_temp
-
 
         def jac_h_matrix(x_slack):
             x_temp = x_slack[0:n]
-
-            #x_part = (prob.cons(x_temp, gradient=True)[-1])[prob.is_eq_cons]
             x_part = constraint_wrapper.Jh(x_temp)
             b_part = np.eye(p)
-            if m>0:
-                a_part = np.zeros((p,m))
-                return np.hstack((x_part,a_part,b_part))
-            return np.hstack((x_part,b_part))
+            if m > 0:
+                a_part = np.zeros((p, m))
+                return np.hstack((x_part, a_part, b_part))
+            return np.hstack((x_part, b_part))
 
-        def jac_h_product(x_slack,vec):
+        def jac_h_product(x_slack, vec):
             x_temp = x_slack[0:n]
-            #vec_full = np.zeros(m+p)
-            #vec_full[prob.is_eq_cons] = vec
-            #x_part = prob.jprod(x=x_temp,transpose=True,p = vec_full)
-
-            x_part = constraint_wrapper.JhT_v(x_temp,vec)
+            x_part = constraint_wrapper.JhT_v(x_temp, vec)
             a_part = np.zeros(m)
-            return np.concatenate((x_part, a_part,vec))
+            return np.concatenate((x_part, a_part, vec))
 
-
-        jac_h = jacobian.Jacobian(jac=jac_h_matrix,jac_prod=jac_h_product)
+        jac_h = jacobian.Jacobian(jac=jac_h_matrix, jac_prod=jac_h_product)
 
     adapter = IPOPTAdapter(prob)
     problem_ipopt = cyipopt.Problem(
         n=n,
         m=prob.m,
         problem_obj=adapter,
-        lb = prob.bl,
-        ub = prob.bu,
-        cl = prob.cl,
-        cu = prob.cu
+        lb=prob.bl,
+        ub=prob.bu,
+        cl=prob.cl,
+        cu=prob.cu
     )
     return {
         "problem_ipopt": problem_ipopt,
-        "prob" : prob,
-        "n" : n,
-        "m" : m,
-        "p" : p,
-        "f" : f,
-        "f_grad" : f_grad,
-        "g" : g,
-        "jac_g" : jac_g,
-        "h" : h,
-        "jac_h" : jac_h,
-        "constraint_wrapper" : constraint_wrapper
+        "prob": prob,
+        "n": n,
+        "m": m,
+        "p": p,
+        "f": f,
+        "f_grad": f_grad,
+        "g": g,
+        "jac_g": jac_g,
+        "h": h,
+        "jac_h": jac_h,
+        "constraint_wrapper": constraint_wrapper
     }
-    #desc = "null"
-    #phi = pyproximal.L1(sigma=1.0)
+
+
+
 def calculate_multiplier(info):
+    """
+    Calculate the regularization parameter for SALM from the IPOPT multipliers
+
+    Parameters
+    ----------
+    info : dict
+        information about the IPOPT solution
+
+    Returns
+    -------
+    regularization : float
+        regularization parameter
+
+    """
     all_multipliers = info['mult_g']
     max_abs_multiplier = np.max(np.abs(all_multipliers))
-    # print(max_abs_multiplier)
     regularization = 10.0 + max_abs_multiplier
     return regularization
 
 
-def run_cutest_problem(problem_data
-):
-
+def run_cutest_problem(problem_data):
     """
-    constraints = [
-        {
-            "type": "eq",
-            "fun": h,
-            "jac": jac_h
-        },
-        {
-            "type": "ineq",
-            "fun": g,
-            "jac": jac_g
-        }
-    ]
-    result2 = minimize_ipopt(fun=prob.obj,
-                           x0=prob.x0,
-                           jac=prob.grad,
-                           constraints=constraints,
-                           #method="trust-constr",
-                           )
+    Runs IPOPT and SALM on a CUTEst problem and writes pickle files
+
+    Parameters
+    ----------
+    problem_data : dict
+        contains problem data
+
+    Returns
+    -------
+    result : OptimizationResult
+        optimization result of SALM of type OptimizationResult
+
     """
     problem_ipopt = problem_data['problem_ipopt']
     prob = problem_data['prob']
@@ -483,58 +431,50 @@ def run_cutest_problem(problem_data
     jac_h = problem_data['jac_h']
     constraint_wrapper = problem_data['constraint_wrapper']
 
-    ipopt_x , info = problem_ipopt.solve(prob.x0)
-    #print(result2.__dict__)
-    #print(info)
-    #print("Multipliers:\n",result2.v)
-    print("Solution (IPOPT):\n", ipopt_x)
+    ipopt_x, info = problem_ipopt.solve(prob.x0)
+    #print("Solution (IPOPT):\n", ipopt_x)
     print("Objective (IPOPT):\n", prob.obj(ipopt_x))
-    #print("Constraints:\n",prob.cons(ipopt_x))
 
     with open(f"CUTEst/{problem_class}/{prob.name}_IPOPT_result.pkl", "wb") as write_file:
         pickle.dump(info, write_file)
-    #pycutest.clear_cache(prob.name)
-    #all_multipliers = np.hstack([arr.ravel() for arr in result2.v])
     regularization = calculate_multiplier(info)
-    print(f"Lower bound: {prob.bl}, upper bound: {prob.bu}")
-    phi = L1Slack.L1Slack(n= n, m=m,p=p,sigma = regularization,bl=prob.bl,bu=prob.bu)
+    #print(f"Lower bound: {prob.bl}, upper bound: {prob.bu}")
+    phi = L1Slack.L1Slack(n=n, m=m, p=p, sigma=regularization, bl=prob.bl, bu=prob.bu)
 
-    # a0 = np.ones(m)/m
-    # a0 = np.zeros(m)
-    # b0 = np.ones(p)/p
-    #a0 = prob.cons(prob.x0)[~prob.is_eq_cons]
+    # initial values for SALM
     a0 = -constraint_wrapper.g(prob.x0)
-    # print(a0)
-    #b0 = -prob.cons(prob.x0)[prob.is_eq_cons]
     b0 = -constraint_wrapper.h(prob.x0)
-    # print(g(np.concatenate((prob.x0,a0,b0))))
     x0 = np.concatenate((prob.x0, a0, b0), axis=0)
-    #print(f"Phi: {phi(x0)}")
-    #x0 = np.concatenate((ipopt_x, a0, b0), axis=0)
-    # print(len(x0))
 
 
     # Call the solver
-    result = SALM.salm(f=f, phi=phi, x0 = x0, g=g, h=h, f_grad=f_grad, jac_g=jac_g, jac_h=jac_h, tol=1e-6,
-                       maxiter=100,subsolver="PANOC_plus")
+    result = SALM.salm(f=f, phi=phi, x0=x0, g=g, h=h, f_grad=f_grad, jac_g=jac_g, jac_h=jac_h, tol=1e-6,
+                       maxiter=100, subsolver="PANOC_plus")
     result_x = result.x[0:n]
     print(result.message)
-    print("Optimized solution (SALM):\n", result_x)
+    #print("Optimized solution (SALM):\n", result_x)
     print("Objective (SALM):\n", prob.obj(result_x))
-    print("Regularization:\n",phi(result.x))
-    #print("Constraints:\n",-prob.cons(result_x))
-
+    print("Regularization:\n", phi(result.x))
 
     with open(f"CUTEst/{problem_class}/{prob.name}_SALM_result.pkl", "wb") as write_file:
         pickle.dump(result, write_file)
     return result
 
-def max_constraint_violation(problem,x):
+
+def max_constraint_violation(problem, x):
     """
     Computes maximal constraint violation directly from CUTEst bounds.
 
-    Returns:
-        scalar infinity-norm violation
+    Parameters
+    ----------
+    problem : pycutest.CUTEstProblem
+        contains problem data
+    x : np.ndarray
+        x-value
+
+    Returns
+    -------
+    infinity-norm constraint violation
     """
     if problem.m == 0:
         return 0.0
@@ -551,7 +491,20 @@ def max_constraint_violation(problem,x):
 
     return max(np.max(lower_violation), np.max(upper_violation))
 
+
 def read_data(subfolder):
+    """
+    Reads optimization data from folder and calculates metrics for evaluation
+
+    Parameters
+    ----------
+    subfolder : str
+        folder name containing the pickle files of a problem class
+
+    Returns
+    -------
+    pd.DataFrame with relevant metrics
+    """
     folder = Path("CUTEst") / subfolder
 
     unique_prefixes = {
@@ -560,8 +513,6 @@ def read_data(subfolder):
     }
 
     unique_prefixes = sorted(unique_prefixes)
-    #print(len(unique_prefixes))
-    #print(unique_prefixes)
     results = []
     for problem_name in unique_prefixes:
         cutest_prob = pycutest.import_problem(problem_name)
@@ -570,19 +521,18 @@ def read_data(subfolder):
         with open(problem_path, "rb") as f_ipopt:
             info = pickle.load(f_ipopt)
             x_opt = info["x"]
-            #constr_violation = np.maximum(np.linalg.norm(np.minimum(cutest_prob.cons(x_opt)[~cutest_prob.is_eq_cons],0.0),ord=np.inf),np.linalg.norm(cutest_prob.cons(x_opt)[cutest_prob.is_eq_cons],ord=np.inf))
-            constr_violation = max_constraint_violation(cutest_prob,x_opt)
+            constr_violation = max_constraint_violation(cutest_prob, x_opt)
             results.append(
                 {
                     "problem_name": problem_name,
                     "method_name": "IPOPT",
                     "obj": info["obj_val"],
                     "constr_violation": constr_violation,
-                    "norm_a_plus_b" : 0.0,
-                    "status" : info["status"],
+                    "norm_a_plus_b": 0.0,
+                    "status": info["status"],
                     "status_msg": info["status_msg"],
-                    "outer_iterations" : 0,
-                    "inner_iterations" : 0
+                    "outer_iterations": 0,
+                    "inner_iterations": 0
                 }
             )
         problem_path = folder / f"{problem_name}_SALM_result.pkl"
@@ -591,10 +541,9 @@ def read_data(subfolder):
             n = cutest_prob.n
             m = cutest_prob.m
             x_opt = res_salm.x[0:n]
-            a_and_b = res_salm.x[n:n+m]
-            norm_a_plus_b = np.linalg.norm(a_and_b,ord=np.inf)
-            #constr_violation = np.maximum(np.linalg.norm(np.minimum(cutest_prob.cons(x_opt)[~cutest_prob.is_eq_cons],0.0),ord=np.inf),np.linalg.norm(cutest_prob.cons(x_opt)[cutest_prob.is_eq_cons],ord=np.inf))
-            constr_violation = max_constraint_violation(cutest_prob,x_opt)
+            a_and_b = res_salm.x[n:n + m]
+            norm_a_plus_b = np.linalg.norm(a_and_b, ord=np.inf)
+            constr_violation = max_constraint_violation(cutest_prob, x_opt)
             results.append(
                 {
                     "problem_name": problem_name,
@@ -612,10 +561,22 @@ def read_data(subfolder):
     df_results = pd.DataFrame(results)
     return df_results
 
-#def read_problem_file(problem_name, solver):
+
+
 
 def performance_statistics(df_in: pd.DataFrame):
+    """
+    Reads result data from a problem class and returns its performance statistics
 
+    Parameters
+    ----------
+    df_in : pd.DataFrame
+        dataframe containing optimization results for a problem class
+
+    Returns
+    -------
+    pd.DataFrame with statistics
+    """
     feasible_ipopt = 0
     feasible_salm = 0
     fbo_ipopt = 0
@@ -649,7 +610,7 @@ def performance_statistics(df_in: pd.DataFrame):
                     feasible_ipopt += 1
                     ipopt_feas = True
                 if current_row["status"] >= 0:
-                    kkt_ipopt +=1
+                    kkt_ipopt += 1
 
             if method_name == "SALM":
                 salm_obj = current_row["obj"]
@@ -667,7 +628,7 @@ def performance_statistics(df_in: pd.DataFrame):
             performs_better_salm += 1
 
         if ipopt_feas and salm_feas:
-            f_diff = (ipopt_obj - salm_obj) / (np.maximum(1.0,np.abs(np.minimum(ipopt_obj,salm_obj))))
+            f_diff = (ipopt_obj - salm_obj) / (np.maximum(1.0, np.abs(np.minimum(ipopt_obj, salm_obj))))
             if f_diff >= diff_tolerance:
                 fbo_ipopt += 1
                 performs_better_ipopt += 1
@@ -676,13 +637,13 @@ def performance_statistics(df_in: pd.DataFrame):
                 performs_better_salm += 1
 
     ipopt_dict = {
-            "method_name": "IPOPT",
-            "feasible" : feasible_ipopt,
-            "feasible, better objective" : fbo_ipopt,
-            "performs better" : performs_better_ipopt,
-            "a small": 0,
-            "KKT found" : kkt_ipopt
-        }
+        "method_name": "IPOPT",
+        "feasible": feasible_ipopt,
+        "feasible, better objective": fbo_ipopt,
+        "performs better": performs_better_ipopt,
+        "a small": 0,
+        "KKT found": kkt_ipopt
+    }
     salm_dict = {
         "method_name": "SALM",
         "feasible": feasible_salm,
@@ -691,7 +652,7 @@ def performance_statistics(df_in: pd.DataFrame):
         "a small": a_small,
         "KKT found": kkt_salm
     }
-    return pd.DataFrame([ipopt_dict,salm_dict])
+    return pd.DataFrame([ipopt_dict, salm_dict])
 
 
 @dataclass
@@ -705,20 +666,14 @@ class DataLine:
     outer_iterations: int
     inner_iterations: int
 
-#test_prob = "HS76"
-#pycutest.clear_cache(test_prob)
-#prob_test = pycutest.import_problem(test_prob)
-#test_build = build_cutest_problem(prob_test)
-#print(prob_test.cons(prob_test.x0))
-#ret_result = run_cutest_problem(test_build)
+
+
 problem_class = "sum_of_squares"
 
 #run_problem_set(quadratic_probs)
 
-
 df = read_data(problem_class)
 stat = performance_statistics(df)
-#print(stat)
-stat.to_csv(f"csv/statistics/{problem_class}_stats.csv", index = False)
+#stat.to_csv(f"csv/statistics/{problem_class}_stats.csv", index=False)
 #df.to_csv(f"csv/{problem_class}.csv", index=False)
-#print(df[["problem_name", "obj","constr_violation", "status","norm_a_plus_b"]])
+

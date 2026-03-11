@@ -4,11 +4,27 @@ import numpy as np
 from gurobipy import GRB
 
 def build_result(model,x):
+    r"""
+        Builds an optimization result out of the data provided by the Gurobi model.
+
+        Parameters
+        ----------
+        model : gurobipy.Model
+            Gurobi model
+        x : np.array
+            optimal vector
+
+        Returns
+        -------
+        OptimizationResult
+            optimization result of type OptimizationResult
+    """
+
 
     success = model.status == GRB.OPTIMAL
 
     x_opt = x
-    print(x_opt)
+    #print(x_opt)
     nnz = int(np.count_nonzero(x_opt))
 
     inner_iterations = model.IterCount
@@ -31,8 +47,8 @@ def build_result(model,x):
         x=x_opt,
         obj=model.ObjVal,
         nnz=nnz,
-        outer_iterations=outer_iterations,
-        inner_iterations=inner_iterations,
+        outer_iterations=int(outer_iterations),
+        inner_iterations=int(inner_iterations),
         ineq_violation=ineq_violation,
         eq_violation=eq_violation
     )

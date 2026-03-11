@@ -5,21 +5,31 @@ from pyproximal.ProxOperator import _check_tau
 
 
 class L1Slack(L1):
-    r"""L1 proximal operator for the slack variables
+    r"""L1 proximal operator for CUTEst test problems
 
-        Proximal operator of the L0-Pseudonorm with an added indicator function of the interval [0,u]:
+        Proximal operator for the special setting of regularized CUTEst problems. It is split into three parts.
+         - x-part: indicator function of a cartesian product of given closed intervals
+         - a-part: indicator function of cartesian product of the positive real numbers plus L1-regularization
+         - b-part: L1-regularization
 
         Parameters
         ----------
-        sigma : :obj:`float` or :obj:`np.ndarray` or :obj:`func`, optional
-            Multiplicative coefficient of the L0-Pseudonorm. This can be a constant number, a list
-            of values (for 2-dimensional inputs, acting on the second dimension) or
-            a function that is called passing a counter which keeps track of how many
-            times the ``prox`` method has been invoked before and returns a scalar (or a list of)
-            ``sigma`` to be used.
-        g : :obj:`np.ndarray`, optional
-            Vector to be subtracted
+        n : int
+            length of x-part
+        m : int
+            length of a-part
+        p : int
+            length of b-part
+        bl : np.ndarray
+            vector of lower bounds for x-part
+        bu : np.ndarray
+            vector of upper bounds for x-part
+        sigma : float, optional
+            regularization parameter
+
+
     """
+    # initialize
     def __init__(self, n,m,p, bl,bu, sigma=1.):
         super().__init__(sigma = sigma, g = None)
         if sigma < 0:
@@ -31,10 +41,12 @@ class L1Slack(L1):
         self.bl = bl
         self.bu = bu
 
+    # function call of phi
     def __call__(self, x: NDArray) -> float:
         return super().__call__(x= x[self.n:self.n + self.m+self.p])
 
 
+    # prox evaluation
     @_check_tau
     def prox(self, x, tau):
         st = self.sigma * tau
@@ -49,7 +61,6 @@ class L1Slack(L1):
             else:
                 x_ret[self.n + i] = x[self.n + i]-st
 
-        #x_ret[self.n:self.n + self.m] = np.zeros(self.m)
         # soft thresholding for b-part
         x_ret[self.n+self.m:self.n + self.m + self.p] = super().prox(x[self.n+self.m:self.n + self.m+self.p],tau)
         return x_ret

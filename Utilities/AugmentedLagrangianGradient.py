@@ -4,7 +4,38 @@ import numpy as np
 from Utilities import jacobian
 
 
+
 class AugmentedLagrangianGradient:
+    r"""Augmented Lagrangian gradient function.
+
+        Auxiliary class for memory efficiency.
+
+        Parameters
+        ----------
+
+        g : callable or array of callables
+            inequality constraint functions
+        h : callable or array of callables
+            equality constraint functions
+        f_grad : callable
+            gradient of objective function
+        jac_g : callable or array of callables or Utilities.jacobian.Jacobian
+            Jacobian of inequality constraint functions
+        jac_h : callable or array of callables or Utilities.jacobian.Jacobian
+            Jacobian of equality constraint functions
+        lam_temp : numpy array
+            inequality constraint multipliers
+        mu_temp : numpy array
+            equality constraint multipliers
+        pen : float
+            penalty parameter
+        m : int
+            number of inequality constraints
+        n : int
+            input dimension of objective function
+        p: int
+            number of equality constraints
+    """
     def __init__(self,g,h,f_grad, jac_g,jac_h, lam_temp, mu_temp, pen_temp, m, n,p):
         self.g = g
         self.h = h
@@ -37,6 +68,7 @@ class AugmentedLagrangianGradient:
             return []
         return np.asarray([g_i(x_value) for g_i in self.g])
 
+    # update Jacobian matrix J
     def update_jacobian(self, J, jac, x):
         for i in range(J.shape[0]):
             J.rows[i].clear()
@@ -54,7 +86,7 @@ class AugmentedLagrangianGradient:
                 J.data[i].extend(row[nz].tolist())
 
 
-
+    # evaluate the augmented Lagrangian at a point x_value
     def __call__(self, x_value):
         f_grad_val = np.asarray(self.f_grad(x_value), dtype=float)
         h_temp = self.eval_h(x_value)
@@ -63,6 +95,7 @@ class AugmentedLagrangianGradient:
         grad_sum = f_grad_val.copy()
         if len(g_temp) > 0:
             if isinstance(self.jac_g,jacobian.Jacobian):
+                # matrix-free implementation
                 grad_sum += self.jac_g.jacobian_vector_product(x= x_value,vec=( self.lam_temp + self.pen_temp * np.maximum(0.0, g_temp)))
             else:
                 if callable(self.jac_g):
@@ -72,11 +105,11 @@ class AugmentedLagrangianGradient:
                     self.update_jacobian(J=self.J_g, jac=self.jac_g, x=x_value)
                     g_Jac_temp = self.J_g.tocsr()
                     jac_gT = g_Jac_temp.transpose()
-                    #grad_sum += g_Jac_temp.T.dot(lam_temp+pen_temp*np.maximum(0.0,g_temp))
                 grad_sum += np.transpose(jac_gT @( self.lam_temp + self.pen_temp * np.maximum(0.0, g_temp)))
 
         if len(h_temp) > 0:
             if isinstance(self.jac_h,jacobian.Jacobian):
+                # matrix-free implementation
                 grad_sum += self.jac_h.jacobian_vector_product(x = x_value, vec = self.mu_temp + self.pen_temp * h_temp)
             else:
                 if callable(self.jac_h):
@@ -87,11 +120,4 @@ class AugmentedLagrangianGradient:
                     h_Jac_temp = self.J_h.tocsr()
                     jac_hT = h_Jac_temp.transpose()
                 grad_sum += np.transpose(jac_hT @ np.atleast_1d(self.mu_temp + self.pen_temp * h_temp))
-
-
-
-
-        #print(g_Jac_temp)
-
-        #print(grad_sum)
         return grad_sum

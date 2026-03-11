@@ -3,12 +3,14 @@ import numpy as np
 class LBFGSOperator:
     def __init__(self, M, x):
         """
+        Class for implementing a L-BFGS algorithm
+
         Parameters
         ----------
         M : int
-            Memory size
+            memory size
         x : np.ndarray
-            Reference vector (defines dimension and dtype)
+            reference vector
         """
         self.M =M
         self.currmem  = 0

@@ -1,7 +1,5 @@
 import numpy as np
 import copt
-from scipy.sparse import lil_matrix
-
 
 from Algorithms import panoc_plus
 from Utilities.AugmentedLagrangianGradient import AugmentedLagrangianGradient
@@ -33,18 +31,63 @@ def salm(f,
          subsolver = 'ProxGrad',
          ):
     """
-    Minimize f(x) + phi(x) subject to g(x)<=0, h(x)=0 using the safeguarded augmented Lagrangian method
+        Implementation of the safeguarded augmented Lagrangian method (SALM) for constrained composite optimization
 
-    ------------------------------------------------
-    f(x):            f(x)  (smooth part)
-    f_grad(x):       ∇f(x)
-    phi(x):          phi(x) (non-smooth part, has a proximal operator phi.prox)
-    x0:              initial point
-    g(x):            g(x)
-    h(x):            h(x)
-    jac_g(x):        Jacobian of g at x
-    jac_h(x):        Jacobian of h at x
-    """
+        Parameters
+        ----------
+        f : callable
+            smooth part of the objective
+        f_grad : callable
+            gradient of smooth part
+        phi : callable
+            non-smooth part, has a proximal operator phi.prox
+        x0 : array_like
+            initial point
+        g : callable or  array of callables
+            inequality constraint functions
+        jac_g : callable or  array of callables
+            Jacobians of inequality constraint functions
+        h : callable or  array of callables
+            equality constraint functions
+        jac_h : callable or  array of callables
+            Jacobians of equality constraint functions
+        pen0 : float
+            initial value of penalty parameter
+        pen_max : float
+            upper bound for penalty parameter
+        gamma : float
+            penalty increase parameter > 1
+        lam0 : array_like
+            initial value of inequality constraint multipliers
+        mu0 : array_like
+            initial value of equality constraint multipliers
+        lam_max :
+            upper bound for inequality constraint multipliers
+        mu_max :
+            upper bound for equality constraint multipliers
+        tol : float
+            tolerance parameter for stopping criterion
+        tol_prim : float
+            tolerance for measuring the constraint violations
+        tol_dual : float
+            tolerance for measuring approximate stationarity of the Lagrangian
+        inner_tol : float
+            tolerance for the subproblem solver
+        kappa_tol : float
+            tolerance reduction parameter
+        maxiter : int
+            upper bound for iterations
+        tau : float
+            sufficient decrease parameter
+        subsolver : str
+            specifies which subsolver to use - default is proximal gradient
+
+        Returns
+        -------
+        OptimizationResult
+            optimization result of type OptimizationResult
+
+        """
     # Initialization
     x = np.asarray(x0, dtype=float)
     if tol_prim is None:
@@ -138,7 +181,7 @@ def salm(f,
                 res = panoc_plus.panoc_plus(fun=inner_fun, grad=inner_jac, phi=phi, x0=x, verbose=False, tol=inner_tol,
                                             A=np.eye(n), maxiter=500)
                 sub_solved = res.success
-                # check if gamma got to small
+                # check if PANOC+ gamma got to small
                 broken = res.status == 2
             else:
                 # subproblem solver proximal gradient

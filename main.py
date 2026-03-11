@@ -1,4 +1,4 @@
-# This is a sample Python script.
+
 import pickle
 from pathlib import Path
 
@@ -9,6 +9,19 @@ from matplotlib import pyplot as plt
 import results
 import portfolio
 
+def compress_profile(tau, rho):
+    tau = np.asarray(tau)
+    rho = np.asarray(rho)
+
+    keep = [0]
+
+    for i in range(1, len(rho)):
+        if rho[i] != rho[i-1]:   # step change
+            keep.append(i)
+
+    keep.append(len(rho)-1)
+
+    return tau[keep], rho[keep]
 
 def plot_performance(metric):
 
@@ -26,19 +39,37 @@ def plot_performance(metric):
     values_PANOC = df_PANOC[metric].values
     values_sorted_PANOC = np.sort(values_PANOC)
 
-    x = np.arange(1, np.maximum(np.max(values_sorted_proxGrad),np.max(values_sorted_PANOC)) + 100)
+    x = np.arange(1, np.maximum(np.max(values_sorted_proxGrad),np.max(values_sorted_PANOC)) + 10)
     y_proxGrad = np.copy(x)
     y_PANOC = np.copy(x)
     for i in range(len(x)):
         y_proxGrad[i] = np.sum(values_sorted_proxGrad <= x[i])
         y_PANOC[i] = np.sum(values_sorted_PANOC <= x[i])
 
+    #export plot
+    tau_pg , rho_pg = compress_profile(x, y_proxGrad)
+    df_pg = pd.DataFrame(
+        {
+            "tau": tau_pg,
+            "rho": rho_pg
+        }
+    )
+    df_pg.to_csv(f"ppPG{metric}.csv", index=False)
+
+    tau_panoc, rho_panoc = compress_profile(x, y_PANOC)
+    dfPANOC = pd.DataFrame(
+        {
+            "tau": tau_panoc,
+            "rho": rho_panoc
+        }
+    )
+    dfPANOC.to_csv(f"ppPANOC{metric}.csv", index=False)
+
     plt.step(x, y_proxGrad,'r',label='Proximal Gradient')
     plt.step(x, y_PANOC,'b',label='PANOC+')
     plt.xlabel(metric)
     plt.ylabel("Number of problems solved")
     plt.ylim(ymin=0, ymax=num_probs)
-    #plt.title("Empirical CDF")
     plt.grid(True)
     plt.show()
 
@@ -118,16 +149,16 @@ def generate_data():
 
 solvers = ["PANOC","proxGrad","Gurobi"]
 
-portfolio.eval_all_probs(solvers=solvers,write_files=True)
+#portfolio.eval_all_probs(solvers=solvers,write_files=True)
 
 
 
 if __name__ == '__main__':
-    #prob_name = "orl200-05-e"
+    prob_name = "orl200-05-e"
     #prob_name = "pard200_d"
 
-    df = generate_data()
-    df.to_csv(f"csv/portfolio/portfolio.csv", index = False)
+    #df = generate_data()
+    #df.to_csv(f"csv/portfolio/portfolio.csv", index = False)
 
     #res = portfolio.run_problem(problem_name=prob_name,solvers=solvers,write_files=False)
     #print(res)
@@ -138,17 +169,19 @@ if __name__ == '__main__':
     #print(opt_res)
     #opt_res2 = res["proxGrad"]
     #print(opt_res2)
+    df = generate_data()
+    metric = "relative_error"
 
-    #solver = "proxGrad"
-    #df = results.load_portfolio(solver=solver)
-    #print(df)
-    #solver = "PANOC"
-    #df2 = results.load_portfolio(solver=solver)
+    df_pg = df[df["method_name"] == "SALM(PG)"]
+    med_pg = df_pg[metric].median()
+    df_panoc = df[df["method_name"] == "SALM(PANOC+)"]
+    med_panoc = df_panoc[metric].median()
+    print(f"Median PG: {med_pg}, Median PANOC: {med_panoc}")
     #print(df2)
     #solver = "Gurobi"
     #df3 = results.load_portfolio(solver=solver)
     #print(df3)
 
-    #plot_performance("outer_iterations")
-    #plot_performance("inner_iterations")
+    plot_performance("outer_iterations")
+    plot_performance("inner_iterations")
 

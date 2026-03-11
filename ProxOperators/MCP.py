@@ -7,19 +7,15 @@ from pyproximal.ProxOperator import _check_tau
 class MCP(ProxOperator):
     r"""MCP proximal operator.
 
-        Proximal operator of the minimax concave penalty function.:
+        Proximal operator of the minimax concave penalty function
 
         Parameters
         ----------
-        sigma : :obj:`float` or :obj:`np.ndarray` or :obj:`func`, optional
-            Multiplicative coefficient of MCP. This can be a constant number, a list
-            of values (for 2-dimensional inputs, acting on the second dimension) or
-            a function that is called passing a counter which keeps track of how many
-            times the ``prox`` method has been invoked before and returns a scalar (or a list of)
-            ``sigma`` to be used.
+        sigma : float, optional
+            regularization parameter
         g : :obj:`np.ndarray`, optional
             Vector to be subtracted
-        delta : :obj: `float`
+        delta : float
             Parameter of the MCP function, must be larger than zero.
     """
     def __init__(self, sigma=1., g=None, delta = 2.0):

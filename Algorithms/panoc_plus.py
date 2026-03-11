@@ -1,5 +1,4 @@
 # ============================================================
-#
 # PANOC+ solver with L-BFGS inverse Jacobian
 #
 # Reference:
@@ -87,7 +86,6 @@ def lower_bound_smoothness_constant(f,grad_f,A,x):
 
 
 
-# PANOC+ solver
 
 def panoc_plus(
     fun,
@@ -107,15 +105,47 @@ def panoc_plus(
     verbose=False,
 ):
     """
-    Minimize f(Ax) + phi(x) using PANOC+.
+    Implementation of the PANOC+ algorithm by De Marchi, Themelis
 
-    ------------------------------------------------
-    fun(x):          f(x)  (smooth part)
-    grad(x):         ∇f(x)
-    phi(x):         phi(x) (non-smooth part, has a proximal operator phi.prox)
-    x0:              initial point
-    A:               linear operator (default: identity)
-    gamma:           stepsize (if None, must be adapted externally)
+    Parameters
+    ----------
+    fun : callable
+        smooth part of the objective
+    grad : callable
+        gradient of smooth part
+    phi : callable
+        non-smooth part, has a proximal operator phi.prox
+    x0 : array_like
+        initial point
+    A  :
+        linear operator (default: identity)
+    gamma : float
+        stepsize
+    maxiter : int
+        upper limit for PANOC+ iterations
+    tol : float
+        tolerance for stopping criterion
+    alpha : float
+        first sufficient decrease parameter
+    beta : float
+        second sufficient decrease parameter
+    lbfgs_memory : int
+        memory length for the limited memory BFGS method
+    adaptive : bool
+        flag for enabling adaptive choice of stepsize gamma
+    min_gamma : float
+        lower bound for stepsize
+    max_backtracks : int
+        upper bound for number of backtracks of tau
+    verbose : bool
+        verbosity option
+
+    Returns
+    -------
+    OptimizeResultPanoc
+        optimization result of type OptimizeResultPanoc
+
+
     """
 
     if A is None:
