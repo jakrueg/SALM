@@ -81,8 +81,8 @@ tol_cons =1e-6
 
 
 
-#path = Path("/home/jannis/Documents/MV/size200")
-path = Path("C:/Users/jkooo/Downloads/MV/size200")
+path = Path("/home/jannis/Documents/MV/size200")
+#path = Path("C:/Users/jkooo/Downloads/MV/size200")
 
 
 def run_problem(problem_name,solvers,write_files = False):

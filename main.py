@@ -182,7 +182,7 @@ def generate_data():
 
 
 
-solvers = ["PANOC","proxGrad"]
+solvers = ["PANOC","proxGrad", "Gurobi"]
 
 #portfolio.eval_all_probs(solvers=solvers,write_files=True)
 
@@ -195,8 +195,8 @@ if __name__ == '__main__':
     #df = generate_data()
     #df.to_csv(f"csv/portfolio/portfolio.csv", index = False)
 
-    res = portfolio.run_problem(problem_name=prob_name,solvers=solvers,write_files=False)
-    print(res)
+    #res = portfolio.run_problem(problem_name=prob_name,solvers=solvers,write_files=False)
+    #print(res)
 
     #solver = "proxGrad"
     #opt_res = res["PANOC"]
@@ -205,7 +205,7 @@ if __name__ == '__main__':
     #opt_res2 = res["proxGrad"]
     #print(opt_res2)
     df = generate_data()
-    metric = "relative_error"
+    metric = "inner_iterations"
 
     df_pg = df[df["method_name"] == "SALM(PG)"]
     med_pg = df_pg[metric].median()
