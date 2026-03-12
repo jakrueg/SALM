@@ -10,10 +10,9 @@ import pickle
 
 import pandas as pd
 
-
+# dataclass for unified optimization result format
 @dataclass
 class OptimizationResult:
-    #problem_name: str
     success: bool
     status: int
     message: str
@@ -24,19 +23,17 @@ class OptimizationResult:
     ineq_violation: float
     eq_violation: float
     obj: float
-    #residual_norm: float
 
+# helper function to build problem path
 def build_path(filename,solver):
     return Path("Data") / f"{filename}_{solver}_result.pkl"
 
+# loads all portfolio data of one solver into a DataFrame
 def load_portfolio(solver):
     path = Path("/home/jannis/Documents/MV/size200")
     problem_files=sorted(path.glob("*.mat"))
     num_probs = len(problem_files)
 
-    #solver = "proxGrad"
-    #solver = "PANOC"
-    #solver = "Gurobi"
     results = []
     for problem in problem_files:
         problem_name = problem.stem
@@ -60,6 +57,7 @@ def load_portfolio(solver):
     df_results = pd.DataFrame(results)
     return df_results
 
+# loads portfolio result data of a single portfolio specified by solver and problem name
 def load_single_portfolio(solver,prob_name):
     filepath = build_path(prob_name, solver)
     with open(filepath, "rb") as f:
@@ -67,26 +65,3 @@ def load_single_portfolio(solver,prob_name):
 
     return opt_res
 
-def plot_results(df_results,metric):
-    num_probs = len(df_results)
-
-    #df_success = df_results[df_results["success"]==True]
-    df_success = df_results
-    #print(df)
-
-    values = df_success[metric].values
-    values_sorted = np.sort(values)
-    rho = np.arange(1, num_probs+1)
-    x = np.arange(1, np.max(values_sorted)+100)
-
-    y = np.copy(x)
-    for i in range(len(y)):
-        y[i] = np.sum(values_sorted<=x[i])
-
-    plt.step(x, y, where="post")
-    plt.xlabel(metric)
-    plt.ylabel("Number of problems solved")
-    plt.ylim(ymin=0,ymax=num_probs)
-    plt.title("Empirical CDF")
-    plt.grid(True)
-    plt.show()

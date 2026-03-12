@@ -566,7 +566,7 @@ def read_data(subfolder):
 
 def performance_statistics(df_in: pd.DataFrame):
     """
-    Reads result data from a problem class and returns its performance statistics
+    Reads result data of a problem class and returns its performance statistics
 
     Parameters
     ----------

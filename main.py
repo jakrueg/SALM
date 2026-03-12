@@ -10,6 +10,21 @@ import results
 import portfolio
 
 def compress_profile(tau, rho):
+    """
+    Compresses a dense performance profile in one, which only saves the points where the rho value changes
+
+    Parameters
+    ----------
+    tau : array_like
+        input space, number of iterations
+    rho : array_like
+        function values, number of problems solved
+
+    Returns
+    -------
+    tau, rho
+        vectors with compressed data
+    """
     tau = np.asarray(tau)
     rho = np.asarray(rho)
 
@@ -24,7 +39,17 @@ def compress_profile(tau, rho):
     return tau[keep], rho[keep]
 
 def plot_performance(metric):
+    """
+    Reads result data from portfolio optimization problems and builds a performance profile, which is shown
+    and exported as .csv
 
+    Parameters
+    ----------
+    metric : str
+        metric for which the performance profile is built
+
+    """
+    # load PG results
     df = results.load_portfolio("proxGrad")
     df_proxGrad = df[df["success"]==True]
     values_proxGrad = df_proxGrad[metric].values
@@ -33,12 +58,13 @@ def plot_performance(metric):
     num_probs = len(df)
 
 
-
+    # load PANOC+ results
     df = results.load_portfolio("PANOC")
     df_PANOC = df[df["success"]==True]
     values_PANOC = df_PANOC[metric].values
     values_sorted_PANOC = np.sort(values_PANOC)
 
+    # performance profile
     x = np.arange(1, np.maximum(np.max(values_sorted_proxGrad),np.max(values_sorted_PANOC)) + 10)
     y_proxGrad = np.copy(x)
     y_PANOC = np.copy(x)
@@ -65,6 +91,7 @@ def plot_performance(metric):
     )
     dfPANOC.to_csv(f"ppPANOC{metric}.csv", index=False)
 
+    # show plot
     plt.step(x, y_proxGrad,'r',label='Proximal Gradient')
     plt.step(x, y_PANOC,'b',label='PANOC+')
     plt.xlabel(metric)
@@ -75,6 +102,14 @@ def plot_performance(metric):
 
 
 def generate_data():
+    """
+    Generates a single DataFrame from the optimization results of all single portfolio problems
+
+
+    Returns
+    -------
+    pd.DataFrame with optimization results of all portfolio problems
+    """
     path = Path("/home/jannis/Documents/MV/size200")
     problem_files = sorted(path.glob("*.mat"))
     results = []
@@ -147,21 +182,21 @@ def generate_data():
 
 
 
-solvers = ["PANOC","proxGrad","Gurobi"]
+solvers = ["PANOC","proxGrad"]
 
 #portfolio.eval_all_probs(solvers=solvers,write_files=True)
 
 
 
 if __name__ == '__main__':
-    prob_name = "orl200-05-e"
+    prob_name = "orl200-05-a"
     #prob_name = "pard200_d"
 
     #df = generate_data()
     #df.to_csv(f"csv/portfolio/portfolio.csv", index = False)
 
-    #res = portfolio.run_problem(problem_name=prob_name,solvers=solvers,write_files=False)
-    #print(res)
+    res = portfolio.run_problem(problem_name=prob_name,solvers=solvers,write_files=False)
+    print(res)
 
     #solver = "proxGrad"
     #opt_res = res["PANOC"]
