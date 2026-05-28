@@ -189,14 +189,14 @@ solvers = ["PANOC","proxGrad", "Gurobi"]
 
 
 if __name__ == '__main__':
-    prob_name = "orl200-05-a"
+    prob_name = "orl200-005-b"
     #prob_name = "pard200_d"
 
     #df = generate_data()
     #df.to_csv(f"csv/portfolio/portfolio.csv", index = False)
 
-    #res = portfolio.run_problem(problem_name=prob_name,solvers=solvers,write_files=False)
-    #print(res)
+    res = portfolio.run_problem(problem_name=prob_name,solvers=solvers,write_files=False)
+    print(res)
 
     #solver = "proxGrad"
     #opt_res = res["PANOC"]
@@ -204,19 +204,19 @@ if __name__ == '__main__':
     #print(opt_res)
     #opt_res2 = res["proxGrad"]
     #print(opt_res2)
-    df = generate_data()
-    metric = "inner_iterations"
+    #df = generate_data()
+    #metric = "inner_iterations"
 
-    df_pg = df[df["method_name"] == "SALM(PG)"]
-    med_pg = df_pg[metric].median()
-    df_panoc = df[df["method_name"] == "SALM(PANOC+)"]
-    med_panoc = df_panoc[metric].median()
-    print(f"Median PG: {med_pg}, Median PANOC: {med_panoc}")
+    #df_pg = df[df["method_name"] == "SALM(PG)"]
+    #med_pg = df_pg[metric].median()
+    #df_panoc = df[df["method_name"] == "SALM(PANOC+)"]
+    #med_panoc = df_panoc[metric].median()
+    #print(f"Median PG: {med_pg}, Median PANOC: {med_panoc}")
     #print(df2)
     #solver = "Gurobi"
     #df3 = results.load_portfolio(solver=solver)
     #print(df3)
 
-    plot_performance("outer_iterations")
-    plot_performance("inner_iterations")
+    #plot_performance("outer_iterations")
+    #plot_performance("inner_iterations")
 

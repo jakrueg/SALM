@@ -3,7 +3,7 @@ from results import OptimizationResult
 import numpy as np
 from gurobipy import GRB
 
-def build_result(model,x):
+def build_result(model,x, Sigma, reg):
     r"""
         Builds an optimization result out of the data provided by the Gurobi model.
 
@@ -45,7 +45,7 @@ def build_result(model,x):
         status= model.Status,
         message = f"Model built with gurobi, finished with status {model.Status}",
         x=x_opt,
-        obj=model.ObjVal,
+        obj=0.5 * x_opt @ Sigma @ x_opt+ reg * nnz,
         nnz=nnz,
         outer_iterations=int(outer_iterations),
         inner_iterations=int(inner_iterations),

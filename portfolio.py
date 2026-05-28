@@ -14,6 +14,7 @@ import numpy as np
 import gurobipy as gp
 import warnings
 
+from ProxOperators.Lp12 import Lp12
 from Utilities import gurobi_adapter
 
 warnings.simplefilter(action="ignore", category=FutureWarning)
@@ -81,7 +82,7 @@ tol_cons =1e-6
 
 
 
-path = Path("/home/jannis/Documents/MV/size200")
+path = Path("/home/krueger/MV/size200")
 #path = Path("C:/Users/jkooo/Downloads/MV/size200")
 
 
@@ -128,11 +129,11 @@ def run_problem(problem_name,solvers,write_files = False):
     elif "orl200-05" in problem_name:
         regularization_factor = 100
     else:
-        regularization_factor = 25
+        regularization_factor = 10
 
     # Set up optimization problem
-    phi = MCP.MCP(sigma = regularization_factor,delta = 0.1)
-
+    #phi = MCP.MCP(sigma = regularization_factor,delta = 0.1)
+    phi = Lp12(sigma = regularization_factor)
 
     def f(x):
         return 0.5 * x.T @ Sigma @ x  # Quadratic objective
@@ -189,9 +190,9 @@ def run_problem(problem_name,solvers,write_files = False):
         gurobi_scale = regularization_factor
         # Define objective function: Minimize risk
         m.setObjective(0.5 * x_gp @ Sigma @ x_gp + gurobi_scale * (len(mu) - xi.sum()), gp.GRB.MINIMIZE)
-        m.setParam('TimeLimit', 60*10)
+        m.setParam('TimeLimit', 60)
         m.optimize()
-        result_gurobi = gurobi_adapter.build_result(m,x_gp.X)
+        result_gurobi = gurobi_adapter.build_result(m,x_gp.X, Sigma, regularization_factor)
         if write_files:
             with open(f"Data/{problem_name}_Gurobi_result.pkl", "wb") as write_file3:
                 pickle.dump(result_gurobi, write_file3)
