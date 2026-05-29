@@ -129,7 +129,7 @@ def run_problem(problem_name,solvers,write_files = False):
     elif "orl200-05" in problem_name:
         regularization_factor = 100
     else:
-        regularization_factor = 10
+        regularization_factor = 25
 
     # Set up optimization problem
     #phi = MCP.MCP(sigma = regularization_factor,delta = 0.1)
@@ -190,7 +190,7 @@ def run_problem(problem_name,solvers,write_files = False):
         gurobi_scale = regularization_factor
         # Define objective function: Minimize risk
         m.setObjective(0.5 * x_gp @ Sigma @ x_gp + gurobi_scale * (len(mu) - xi.sum()), gp.GRB.MINIMIZE)
-        m.setParam('TimeLimit', 60)
+        m.setParam('TimeLimit', 60*10)
         m.optimize()
         result_gurobi = gurobi_adapter.build_result(m,x_gp.X, Sigma, regularization_factor)
         if write_files:

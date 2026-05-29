@@ -23,6 +23,8 @@ class OptimizationResult:
     ineq_violation: float
     eq_violation: float
     obj: float
+    lam: np.ndarray
+    mu: np.ndarray
 
 # helper function to build problem path
 def build_path(filename,solver):

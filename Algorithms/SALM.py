@@ -234,6 +234,7 @@ def salm(f,
         previous_eq_norm = eq_norm
         x = x_new
 
+    print(f"lambda = {lam_new}, mu = {mu_new}")
     print(f"u = {u}, v = {v}")
     if solved:
         return OptimizationResult(x = x,
@@ -246,6 +247,8 @@ def salm(f,
                               inner_iterations=tot_inner_it,
                               ineq_violation=float(np.linalg.norm(np.maximum(np.atleast_1d(g_new), 0.0),ord=np.inf)),
                               eq_violation=float(np.linalg.norm(np.atleast_1d(h_new),ord=np.inf)),
+                              lam=lam_new,
+                              mu=mu_new
         )
     elif tired:
         return OptimizationResult(x=x,
@@ -258,6 +261,8 @@ def salm(f,
                               inner_iterations=tot_inner_it,
                               ineq_violation=float(np.linalg.norm(np.maximum(np.atleast_1d(g_new), 0),ord=np.inf)),
                               eq_violation=float(np.linalg.norm(np.atleast_1d(h_new),ord=np.inf)),
+                              lam=lam_new,
+                              mu=mu_new
                               )
     elif broken:
         print(tot_it)
@@ -271,6 +276,8 @@ def salm(f,
                               inner_iterations=tot_inner_it,
                               ineq_violation=float(np.linalg.norm(np.maximum(np.atleast_1d(g_new), 0),ord=np.inf)),
                               eq_violation=float(np.linalg.norm(np.atleast_1d(h_new),ord=np.inf)),
+                              lam=lam_new,
+                              mu=mu_new
                               )
     else:
         return OptimizationResult(x=x,
@@ -283,4 +290,6 @@ def salm(f,
                               inner_iterations=tot_inner_it,
                               ineq_violation=float(np.linalg.norm(np.maximum(np.atleast_1d(g_new), 0),ord=np.inf)),
                               eq_violation=float(np.linalg.norm(np.atleast_1d(h_new),ord=np.inf)),
+                              lam=lam_new,
+                              mu=mu_new
                               )

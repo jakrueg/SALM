@@ -110,7 +110,7 @@ def generate_data():
     -------
     pd.DataFrame with optimization results of all portfolio problems
     """
-    path = Path("/home/jannis/Documents/MV/size200")
+    path = Path("/home/krueger/MV/size200")
     problem_files = sorted(path.glob("*.mat"))
     results = []
     for problem_file in problem_files:
@@ -183,20 +183,20 @@ def generate_data():
 
 
 solvers = ["PANOC","proxGrad", "Gurobi"]
-
-#portfolio.eval_all_probs(solvers=solvers,write_files=True)
+#solvers = ["proxGrad"]
+portfolio.eval_all_probs(solvers=solvers,write_files=True)
 
 
 
 if __name__ == '__main__':
-    prob_name = "orl200-005-b"
+    prob_name = "orl200-05-d"
     #prob_name = "pard200_d"
 
-    #df = generate_data()
-    #df.to_csv(f"csv/portfolio/portfolio.csv", index = False)
+    df = generate_data()
+    df.to_csv(f"csv/portfolio/portfolio.csv", index = False)
 
-    res = portfolio.run_problem(problem_name=prob_name,solvers=solvers,write_files=False)
-    print(res)
+    #res = portfolio.run_problem(problem_name=prob_name,solvers=solvers,write_files=False)
+    #print(res)
 
     #solver = "proxGrad"
     #opt_res = res["PANOC"]

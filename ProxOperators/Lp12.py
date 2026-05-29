@@ -39,7 +39,7 @@ class Lp12(ProxOperator):
         # threshold for which the prox is not zero
         thresh = 1.5* gamma ** (2/3)
 
-        mask = abs_x > thresh
+        mask = (abs_x > thresh) & (x > 0)
 
         c = (-gamma/4.0) * (3.0/abs_x[mask])**1.5
 

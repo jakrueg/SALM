@@ -44,6 +44,7 @@ class MCP(ProxOperator):
         if self.delta**2 < 2*gamma:
             x1 = x.copy()
             x1[np.square(x) <= 2*gamma] = 0
+            x1[x <= 0] = 0
             return x1
         elif self.delta**2 > 2*gamma:
             thresh = (2*gamma)/self.delta
@@ -54,9 +55,11 @@ class MCP(ProxOperator):
             x2[ind] = 0
             ind = np.logical_and(thresh <= abs_x, abs_x <= self.delta)
             x2[ind] = (self.delta / (self.delta ** 2 - 2 * gamma)) * (self.delta * x[ind] - 2 * gamma * sign_x[ind])
+            x2[x<=0] = 0
             return x2
         else:
             x3 =x.copy()
             x3[np.abs(x3) <= self.delta] = 0
+            x3[x <= 0] = 0
             return x3
 
