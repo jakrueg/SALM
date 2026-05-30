@@ -32,7 +32,7 @@ def build_path(filename,solver):
 
 # loads all portfolio data of one solver into a DataFrame
 def load_portfolio(solver):
-    path = Path("/home/jannis/Documents/MV/size200")
+    path = Path("/home/krueger/MV/size200")
     problem_files=sorted(path.glob("*.mat"))
     num_probs = len(problem_files)
 

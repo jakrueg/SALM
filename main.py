@@ -128,6 +128,7 @@ def generate_data():
                 {
                     "problem_name": problem_name,
                     "method_name" : "Gurobi",
+                    "status" : res_gurobi.status,
                     "outer_iterations": int(res_gurobi.outer_iterations),
                     "inner_iterations": int(res_gurobi.inner_iterations),
                     "obj" : obj_reference,
@@ -136,6 +137,8 @@ def generate_data():
                     "risk" : 0.5*x_gurobi.T @ Q @ x_gurobi,
                     "return" : np.dot(mu, x_gurobi),
                     "budget" : np.sum(x_gurobi),
+                    "lambda" : res_gurobi.lam,
+                    "mu" : res_gurobi.mu
                 }
             )
 
@@ -148,6 +151,7 @@ def generate_data():
                 {
                     "problem_name": problem_name,
                     "method_name": "SALM(PG)",
+                    "status" : res_proxGrad.status,
                     "outer_iterations": int(res_proxGrad.outer_iterations),
                     "inner_iterations": int(res_proxGrad.inner_iterations),
                     "obj": obj_proxGrad,
@@ -156,6 +160,8 @@ def generate_data():
                     "risk": 0.5 * x_proxGrad.T @ Q @ x_proxGrad,
                     "return": np.dot(mu, x_proxGrad),
                     "budget": np.sum(x_proxGrad),
+                    "lambda": res_proxGrad.lam,
+                    "mu": res_proxGrad.mu
                 }
             )
 
@@ -168,6 +174,7 @@ def generate_data():
                 {
                     "problem_name": problem_name,
                     "method_name": "SALM(PANOC+)",
+                    "status": res_panoc.status,
                     "outer_iterations": int(res_panoc.outer_iterations),
                     "inner_iterations": int(res_panoc.inner_iterations),
                     "obj": obj_panoc,
@@ -176,6 +183,8 @@ def generate_data():
                     "risk": 0.5 * x_panoc.T @ Q @ x_panoc,
                     "return": np.dot(mu, x_panoc),
                     "budget": np.sum(x_panoc),
+                    "lambda": res_panoc.lam,
+                    "mu": res_panoc.mu
                 }
             )
     return pd.DataFrame(results)
@@ -189,7 +198,7 @@ portfolio.eval_all_probs(solvers=solvers,write_files=True)
 
 
 if __name__ == '__main__':
-    prob_name = "orl200-05-d"
+    #prob_name = "orl200-05-d"
     #prob_name = "pard200_d"
 
     df = generate_data()

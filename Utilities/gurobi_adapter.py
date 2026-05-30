@@ -50,5 +50,7 @@ def build_result(model,x, Sigma, reg):
         outer_iterations=int(outer_iterations),
         inner_iterations=int(inner_iterations),
         ineq_violation=ineq_violation,
-        eq_violation=eq_violation
+        eq_violation=eq_violation,
+        lam=np.zeros(0),
+        mu=np.zeros(0)
     )
