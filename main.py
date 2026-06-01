@@ -137,8 +137,8 @@ def generate_data():
                     "risk" : 0.5*x_gurobi.T @ Q @ x_gurobi,
                     "return" : np.dot(mu, x_gurobi),
                     "budget" : np.sum(x_gurobi),
-                    "lambda" : res_gurobi.lam,
-                    "mu" : res_gurobi.mu
+                    "lambda" : "-",
+                    "mu" : "-"
                 }
             )
 
@@ -160,8 +160,8 @@ def generate_data():
                     "risk": 0.5 * x_proxGrad.T @ Q @ x_proxGrad,
                     "return": np.dot(mu, x_proxGrad),
                     "budget": np.sum(x_proxGrad),
-                    "lambda": res_proxGrad.lam,
-                    "mu": res_proxGrad.mu
+                    "lambda": res_proxGrad.lam[0],
+                    "mu": res_proxGrad.mu[0]
                 }
             )
 
@@ -183,8 +183,8 @@ def generate_data():
                     "risk": 0.5 * x_panoc.T @ Q @ x_panoc,
                     "return": np.dot(mu, x_panoc),
                     "budget": np.sum(x_panoc),
-                    "lambda": res_panoc.lam,
-                    "mu": res_panoc.mu
+                    "lambda": res_panoc.lam[0],
+                    "mu": res_panoc.mu[0]
                 }
             )
     return pd.DataFrame(results)
@@ -193,7 +193,7 @@ def generate_data():
 
 solvers = ["PANOC","proxGrad", "Gurobi"]
 #solvers = ["proxGrad"]
-portfolio.eval_all_probs(solvers=solvers,write_files=True)
+#portfolio.eval_all_probs(solvers=solvers,write_files=True)
 
 
 
