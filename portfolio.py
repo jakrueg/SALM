@@ -127,13 +127,13 @@ def run_problem(problem_name,solvers,write_files = False):
     if "pard200" in problem_name:
         regularization_factor = 50
     elif "orl200-05" in problem_name:
-        regularization_factor = 100
+        regularization_factor = 90
     else:
         regularization_factor = 25
 
     # Set up optimization problem
-    #phi = MCP.MCP(sigma = regularization_factor,delta = 0.1)
-    phi = Lp12(sigma = regularization_factor)
+    phi = MCP.MCP(sigma = regularization_factor,delta = 0.1)
+    #phi = Lp12(sigma = regularization_factor)
 
     def f(x):
         return 0.5 * x.T @ Sigma @ x  # Quadratic objective
