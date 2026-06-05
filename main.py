@@ -64,13 +64,21 @@ def plot_performance(metric):
     values_PANOC = df_PANOC[metric].values
     values_sorted_PANOC = np.sort(values_PANOC)
 
+    # load Gurobi results
+    df = results.load_portfolio("Gurobi")
+    df_Gurobi = df[df["success"] == True]
+    values_Gurobi = df_Gurobi[metric].values
+    values_sorted_Gurobi = np.sort(values_Gurobi)
+
     # performance profile
-    x = np.arange(1, np.maximum(np.max(values_sorted_proxGrad),np.max(values_sorted_PANOC)) + 10)
+    x = np.arange(1, np.maximum( np.max(values_sorted_Gurobi) ,np.maximum(np.max(values_sorted_proxGrad),np.max(values_sorted_PANOC))) + 10)
     y_proxGrad = np.copy(x)
     y_PANOC = np.copy(x)
+    y_Gurobi = np.copy(x)
     for i in range(len(x)):
         y_proxGrad[i] = np.sum(values_sorted_proxGrad <= x[i])
         y_PANOC[i] = np.sum(values_sorted_PANOC <= x[i])
+        y_Gurobi[i] = np.sum(values_sorted_Gurobi <= x[i])
 
     #export plot
     tau_pg , rho_pg = compress_profile(x, y_proxGrad)
@@ -91,9 +99,19 @@ def plot_performance(metric):
     )
     dfPANOC.to_csv(f"ppPANOC{metric}.csv", index=False)
 
+    tau_gurobi, rho_gurobi = compress_profile(x, y_Gurobi)
+    dfGurobi = pd.DataFrame(
+        {
+            "tau": tau_gurobi,
+            "rho": rho_gurobi
+        }
+    )
+    dfGurobi.to_csv(f"ppGurobi{metric}.csv", index=False)
+
     # show plot
     plt.step(x, y_proxGrad,'r',label='Proximal Gradient')
     plt.step(x, y_PANOC,'b',label='PANOC+')
+    plt.step(x, y_Gurobi, 'g', label='Gurobi')
     plt.xlabel(metric)
     plt.ylabel("Number of problems solved")
     plt.ylim(ymin=0, ymax=num_probs)
@@ -138,7 +156,8 @@ def generate_data():
                     "return" : np.dot(mu, x_gurobi),
                     "budget" : np.sum(x_gurobi),
                     "lambda" : "-",
-                    "mu" : "-"
+                    "mu" : "-",
+                    "cpuTime" : res_gurobi.cputime
                 }
             )
 
@@ -161,7 +180,8 @@ def generate_data():
                     "return": np.dot(mu, x_proxGrad),
                     "budget": np.sum(x_proxGrad),
                     "lambda": res_proxGrad.lam[0],
-                    "mu": res_proxGrad.mu[0]
+                    "mu": res_proxGrad.mu[0],
+                    "cpuTime": res_proxGrad.cputime
                 }
             )
 
@@ -184,7 +204,8 @@ def generate_data():
                     "return": np.dot(mu, x_panoc),
                     "budget": np.sum(x_panoc),
                     "lambda": res_panoc.lam[0],
-                    "mu": res_panoc.mu[0]
+                    "mu": res_panoc.mu[0],
+                    "cpuTime": res_panoc.cputime
                 }
             )
     return pd.DataFrame(results)
@@ -193,7 +214,7 @@ def generate_data():
 
 solvers = ["PANOC","proxGrad","Gurobi"]
 #solvers = ["proxGrad"]
-portfolio.eval_all_probs(solvers=solvers,write_files=True)
+#portfolio.eval_all_probs(solvers=solvers,write_files=True)
 
 
 
@@ -201,8 +222,8 @@ if __name__ == '__main__':
     prob_name = "orl200-05-e"
     #prob_name = "pard200_d"
 
-    df = generate_data()
-    df.to_csv(f"csv/portfolio/portfolio_MCP.csv", index = False)
+    #df = generate_data()
+    #df.to_csv(f"csv/portfolio/portfolio_MCP.csv", index = False)
 
     #res = portfolio.run_problem(problem_name=prob_name,solvers=solvers,write_files=False)
     #print(res)
@@ -214,7 +235,7 @@ if __name__ == '__main__':
     #opt_res2 = res["proxGrad"]
     #print(opt_res2)
     #df = generate_data()
-    #metric = "inner_iterations"
+    #metric = "relative_error"
 
     #df_pg = df[df["method_name"] == "SALM(PG)"]
     #med_pg = df_pg[metric].median()
@@ -227,5 +248,5 @@ if __name__ == '__main__':
     #print(df3)
 
     #plot_performance("outer_iterations")
-    #plot_performance("inner_iterations")
+    plot_performance("cpuTime")
 

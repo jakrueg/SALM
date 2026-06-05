@@ -25,6 +25,7 @@ class OptimizationResult:
     obj: float
     lam: np.ndarray
     mu: np.ndarray
+    cputime: float
 
 # helper function to build problem path
 def build_path(filename,solver):
@@ -52,7 +53,10 @@ def load_portfolio(solver):
                     "inner_iterations": opt_res.inner_iterations,
                     "ineq_violation": opt_res.ineq_violation,
                     "eq_violation": opt_res.eq_violation,
-                    "obj": opt_res.obj
+                    "obj": opt_res.obj,
+                    "lambda": opt_res.lam,
+                    "mu": opt_res.mu,
+                    "cpuTime": opt_res.cputime,
                 }
             )
 

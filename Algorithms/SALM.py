@@ -1,5 +1,6 @@
 import numpy as np
 import copt
+import time
 
 from Algorithms import panoc_plus
 from Utilities.AugmentedLagrangianGradient import AugmentedLagrangianGradient
@@ -166,7 +167,7 @@ def salm(f,
     tired = tot_it >= maxiter
     broken = False
     can_stop = solved or tired or broken
-
+    start_time = time.process_time()
     while not can_stop:
         tot_it += 1
         # define objective function for the subproblem solver
@@ -234,62 +235,68 @@ def salm(f,
         previous_eq_norm = eq_norm
         x = x_new
 
-    print(f"lambda = {lam_new}, mu = {mu_new}")
-    print(f"u = {u}, v = {v}")
+    #print(f"lambda = {lam_new}, mu = {mu_new}")
+    #print(f"u = {u}, v = {v}")
+    end_time =  time.process_time()
+    cpu_time = end_time - start_time
     if solved:
         return OptimizationResult(x = x,
-                              success = True,
-                              status = 0,
-                              message = f"Success! Converged in {tot_it} iterations with {tot_inner_it} inner iterations.",
-                              nnz=int(np.count_nonzero(x)),
-                              obj = f(x)+ phi(x),
-                              outer_iterations=tot_it,
-                              inner_iterations=tot_inner_it,
-                              ineq_violation=float(np.linalg.norm(np.maximum(np.atleast_1d(g_new), 0.0),ord=np.inf)),
-                              eq_violation=float(np.linalg.norm(np.atleast_1d(h_new),ord=np.inf)),
-                              lam=lam_new,
-                              mu=mu_new
+                            success = True,
+                            status = 0,
+                            message = f"Success! Converged in {tot_it} iterations with {tot_inner_it} inner iterations.",
+                            nnz=int(np.count_nonzero(x)),
+                            obj = f(x)+ phi(x),
+                            outer_iterations=tot_it,
+                            inner_iterations=tot_inner_it,
+                            ineq_violation=float(np.linalg.norm(np.maximum(np.atleast_1d(g_new), 0.0),ord=np.inf)),
+                            eq_violation=float(np.linalg.norm(np.atleast_1d(h_new),ord=np.inf)),
+                            lam=lam_new,
+                            mu=mu_new,
+                            cputime=cpu_time
         )
     elif tired:
         return OptimizationResult(x=x,
-                              success=False,
-                              status=1,
-                              message=f"Failure! Maximum iterations reached.",
-                              nnz=int(np.count_nonzero(x)),
-                              obj=f(x)+ phi(x),
-                              outer_iterations=tot_it,
-                              inner_iterations=tot_inner_it,
-                              ineq_violation=float(np.linalg.norm(np.maximum(np.atleast_1d(g_new), 0),ord=np.inf)),
-                              eq_violation=float(np.linalg.norm(np.atleast_1d(h_new),ord=np.inf)),
-                              lam=lam_new,
-                              mu=mu_new
-                              )
+                            success=False,
+                            status=1,
+                            message=f"Failure! Maximum iterations reached.",
+                            nnz=int(np.count_nonzero(x)),
+                            obj=f(x)+ phi(x),
+                            outer_iterations=tot_it,
+                            inner_iterations=tot_inner_it,
+                            ineq_violation=float(np.linalg.norm(np.maximum(np.atleast_1d(g_new), 0),ord=np.inf)),
+                            eq_violation=float(np.linalg.norm(np.atleast_1d(h_new),ord=np.inf)),
+                            lam=lam_new,
+                            mu=mu_new,
+                            cputime=cpu_time
+                            )
     elif broken:
         print(tot_it)
         return OptimizationResult(x=x,
-                              success=False,
-                              status=2,
-                              message=f"Failure! Stepsize gamma became to small.",
-                              nnz=int(np.count_nonzero(x)),
-                              obj = f(x)+phi(x),
-                              outer_iterations=tot_it,
-                              inner_iterations=tot_inner_it,
-                              ineq_violation=float(np.linalg.norm(np.maximum(np.atleast_1d(g_new), 0),ord=np.inf)),
-                              eq_violation=float(np.linalg.norm(np.atleast_1d(h_new),ord=np.inf)),
-                              lam=lam_new,
-                              mu=mu_new
-                              )
+                            success=False,
+                            status=2,
+                            message=f"Failure! Stepsize gamma became to small.",
+                            nnz=int(np.count_nonzero(x)),
+                            obj = f(x)+phi(x),
+                            outer_iterations=tot_it,
+                            inner_iterations=tot_inner_it,
+                            ineq_violation=float(np.linalg.norm(np.maximum(np.atleast_1d(g_new), 0),ord=np.inf)),
+                            eq_violation=float(np.linalg.norm(np.atleast_1d(h_new),ord=np.inf)),
+                            lam=lam_new,
+                            mu=mu_new,
+                            cputime=cpu_time
+                            )
     else:
         return OptimizationResult(x=x,
-                              success=False,
-                              status=3,
-                              message="Unknown",
-                              nnz=int(np.count_nonzero(x)),
-                              obj = f(x)+phi(x),
-                              outer_iterations=tot_it,
-                              inner_iterations=tot_inner_it,
-                              ineq_violation=float(np.linalg.norm(np.maximum(np.atleast_1d(g_new), 0),ord=np.inf)),
-                              eq_violation=float(np.linalg.norm(np.atleast_1d(h_new),ord=np.inf)),
-                              lam=lam_new,
-                              mu=mu_new
-                              )
+                            success=False,
+                            status=3,
+                            message="Unknown",
+                            nnz=int(np.count_nonzero(x)),
+                            obj = f(x)+phi(x),
+                            outer_iterations=tot_it,
+                            inner_iterations=tot_inner_it,
+                            ineq_violation=float(np.linalg.norm(np.maximum(np.atleast_1d(g_new), 0),ord=np.inf)),
+                            eq_violation=float(np.linalg.norm(np.atleast_1d(h_new),ord=np.inf)),
+                            lam=lam_new,
+                            mu=mu_new,
+                            cputime=cpu_time
+                            )
