@@ -212,41 +212,17 @@ def generate_data():
 
 
 
-solvers = ["PANOC","proxGrad","Gurobi"]
-#solvers = ["proxGrad"]
-#portfolio.eval_all_probs(solvers=solvers,write_files=True)
+
 
 
 
 if __name__ == '__main__':
-    prob_name = "orl200-05-e"
-    #prob_name = "pard200_d"
+    solvers = ["PANOC", "proxGrad", "Gurobi"]
+    portfolio.eval_all_probs(solvers=solvers, write_files=True)
 
-    #df = generate_data()
-    #df.to_csv(f"csv/portfolio/portfolio_MCP.csv", index = False)
+    df = generate_data()
+    df.to_csv(f"csv/portfolio/portfolio_MCP.csv", index = False)
 
-    #res = portfolio.run_problem(problem_name=prob_name,solvers=solvers,write_files=False)
-    #print(res)
-
-    #solver = "proxGrad"
-    #opt_res = res["PANOC"]
-    #opt_res = results.load_single_portfolio(prob_name=prob_name,solver=solver)
-    #print(opt_res)
-    #opt_res2 = res["proxGrad"]
-    #print(opt_res2)
-    #df = generate_data()
-    #metric = "relative_error"
-
-    #df_pg = df[df["method_name"] == "SALM(PG)"]
-    #med_pg = df_pg[metric].median()
-    #df_panoc = df[df["method_name"] == "SALM(PANOC+)"]
-    #med_panoc = df_panoc[metric].median()
-    #print(f"Median PG: {med_pg}, Median PANOC: {med_panoc}")
-    #print(df2)
-    #solver = "Gurobi"
-    #df3 = results.load_portfolio(solver=solver)
-    #print(df3)
-
-    #plot_performance("outer_iterations")
+    plot_performance("outer_iterations")
     plot_performance("cpuTime")
 
