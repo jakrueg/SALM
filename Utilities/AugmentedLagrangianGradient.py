@@ -94,9 +94,10 @@ class AugmentedLagrangianGradient:
 
         grad_sum = f_grad_val.copy()
         if len(g_temp) > 0:
+            g_multiplier = np.maximum(0.0, self.lam_temp + self.pen_temp * g_temp)
             if isinstance(self.jac_g,jacobian.Jacobian):
                 # matrix-free implementation
-                grad_sum += self.jac_g.jacobian_vector_product(x= x_value,vec=( self.lam_temp + self.pen_temp * np.maximum(0.0, g_temp)))
+                grad_sum += self.jac_g.jacobian_vector_product(x=x_value, vec=g_multiplier)
             else:
                 if callable(self.jac_g):
                     g_Jac_temp = self.jac_g(x_value)
@@ -105,7 +106,7 @@ class AugmentedLagrangianGradient:
                     self.update_jacobian(J=self.J_g, jac=self.jac_g, x=x_value)
                     g_Jac_temp = self.J_g.tocsr()
                     jac_gT = g_Jac_temp.transpose()
-                grad_sum += np.transpose(jac_gT @( self.lam_temp + self.pen_temp * np.maximum(0.0, g_temp)))
+                grad_sum += np.transpose(jac_gT @ g_multiplier)
 
         if len(h_temp) > 0:
             if isinstance(self.jac_h,jacobian.Jacobian):

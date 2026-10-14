@@ -147,10 +147,10 @@ def salm(f,
         f_val = float(f(x_value))
         g_temp = eval_g(x_value)
         h_temp = eval_h(x_value)
-        eq_term = np.dot(mu_temp, h_temp) + 0.5 * pen_temp * np.dot(h_temp, h_temp) if len(h_temp) > 0 else 0.0
-        g_pos = np.maximum(0.0, g_temp)
-        ineq_term = np.dot(lam_temp, g_pos) + 0.5 * pen_temp * np.dot(g_pos, g_pos) if len(g_temp) > 0 else 0.0
-        return f_val + ineq_term + eq_term
+        eq_term = np.dot(h_temp + (1/pen_temp)*mu_temp, h_temp + (1/pen_temp)*mu_temp) if len(h_temp) > 0 else 0.0
+        g_pos = np.maximum(0.0, g_temp+(1/pen_temp)*lam_temp) if len(g_temp) > 0 else 0.0
+        ineq_term = np.dot(g_pos,g_pos) if len(g_pos) > 0 else 0.0
+        return f_val + 0.5* pen_temp *(ineq_term + eq_term)
 
     # SALM Loop
     previous_ineq_norm = np.inf
@@ -207,7 +207,7 @@ def salm(f,
         # multiplier update equality constraints
         if p > 0:
             h_new = eval_h(x_new)
-            mu_new = np.maximum(0.0, v + pen * h_new)
+            mu_new = v + pen * h_new
             eq_norm = np.linalg.norm(h_new)
         else:
             h_new = 0.0
