@@ -165,14 +165,18 @@ def run_problem(problem_name,solvers,write_files = False):
 
     if algoProxGrad:
         # SALM with proximal gradient as subproblem solver
-        result = SALM.salm(f, phi=phi, x0=x0, h=[h], g=g, f_grad=f_grad, jac_h=[jac_h], jac_g=jac_g, tol=tol, maxiter=200)
+        result = SALM.salm(f, phi=phi, x0=x0, h=[h], g=g, f_grad=f_grad, jac_h=[jac_h], jac_g=jac_g, tol=tol, maxiter=500)
         if write_files:
             with open(f"Data/{problem_name}_proxGrad_result.pkl", "wb") as write_file:
                 pickle.dump(result, write_file)
         ret["proxGrad"] = result
     if algoGurobi:
         # Gurobi Reference solver
-        m = gp.Model()
+        env = gp.Env(empty=True)
+        env.setParam("OutputFlag",0)
+        env.start()
+        m = gp.Model(env=env)
+
 
         x_gp = m.addMVar(len(mu), lb=0, name="x")
         # additional variable in MIQP formulation

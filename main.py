@@ -223,6 +223,6 @@ if __name__ == '__main__':
     df = generate_data()
     df.to_csv(f"csv/portfolio/portfolio_MCP.csv", index = False)
 
-    plot_performance("outer_iterations")
-    plot_performance("cpuTime")
+    #plot_performance("outer_iterations")
+    #plot_performance("cpuTime")
 

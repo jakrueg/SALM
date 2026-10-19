@@ -3,6 +3,7 @@ import copt
 import time
 
 from Algorithms import panoc_plus
+from Algorithms import prox_grad
 from Utilities.AugmentedLagrangianGradient import AugmentedLagrangianGradient
 from results import OptimizationResult
 
@@ -186,7 +187,8 @@ def salm(f,
                 broken = res.status == 2
             else:
                 # subproblem solver proximal gradient
-                res = copt.minimize_proximal_gradient(fun=inner_fun, jac=inner_jac, prox=phi.prox, x0=x, verbose=2, tol=inner_tol)
+                #res = copt.minimize_proximal_gradient(fun=inner_fun, jac=inner_jac, prox=phi.prox, x0=x, verbose=2, tol=inner_tol)
+                res = prox_grad.proximal_gradient(fun=inner_fun, grad=inner_jac, phi=phi, x0=x, tau0=1.0, beta=0.5, max_iter=1000, tol=inner_tol)
                 sub_solved = res.success
             tot_inner_it += res.nit
         else:
