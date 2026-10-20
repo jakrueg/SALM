@@ -2,13 +2,8 @@
 from dataclasses import dataclass
 from pathlib import Path
 
-import matplotlib.pyplot as plt
-
-
 import numpy as np
 import pickle
-
-import pandas as pd
 
 # dataclass for unified optimization result format
 @dataclass
@@ -33,6 +28,8 @@ def build_path(filename,solver):
 
 # loads all portfolio data of one solver into a DataFrame
 def load_portfolio(solver):
+    import pandas as pd
+
     path = Path("/home/krueger/MV/size200")
     problem_files=sorted(path.glob("*.mat"))
     num_probs = len(problem_files)
@@ -70,4 +67,3 @@ def load_single_portfolio(solver,prob_name):
         opt_res = pickle.load(f)
 
     return opt_res
-

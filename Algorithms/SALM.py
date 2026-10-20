@@ -1,5 +1,4 @@
 import numpy as np
-import copt
 import time
 
 from Algorithms import panoc_plus
