@@ -240,7 +240,7 @@ def salm(f,
     #print(f"lambda = {lam_new}, mu = {mu_new}")
     #print(f"u = {u}, v = {v}")
     end_time =  time.process_time()
-    cpu_time = end_time - start_time
+    cpu_time = int(1000 * (end_time - start_time))
     if solved:
         return OptimizationResult(x = x,
                             success = True,

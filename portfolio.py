@@ -132,7 +132,7 @@ def run_problem(problem_name,solvers,write_files = False):
 
     # Set up optimization problem
     phi = MCP.MCP(sigma = regularization_factor,delta = 0.1)
-    #phi = Lp12(sigma = regularization_factor)
+    #phi = Lp12(sigma = 3.3*regularization_factor) # the number 3.3 is determined empirically to make the l^(1/2) operator behave similar to the MCP operator around zero
 
     def f(x):
         return 0.5 * x.T @ Sigma @ x  # Quadratic objective

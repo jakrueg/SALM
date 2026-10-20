@@ -19,3 +19,6 @@ ppPANOCcpuTime.csv
 ppPANOCouter_iterations.csv
 ppPGcpuTime.csv
 ppPGouter_iterations.csv
+ppGurobiinner_iterations.csv
+ppPANOCinner_iterations.csv
+ppPGinner_iterations.csv

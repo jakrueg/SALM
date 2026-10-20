@@ -215,7 +215,6 @@ def generate_data():
 
 
 
-
 if __name__ == '__main__':
     solvers = ["PANOC", "proxGrad", "Gurobi"]
     portfolio.eval_all_probs(solvers=solvers, write_files=True)
@@ -223,6 +222,6 @@ if __name__ == '__main__':
     df = generate_data()
     df.to_csv(f"csv/portfolio/portfolio_MCP.csv", index = False)
 
-    #plot_performance("outer_iterations")
-    #plot_performance("cpuTime")
+    #plot_performance("inner_iterations")
+    plot_performance("cpuTime")
 

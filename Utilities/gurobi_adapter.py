@@ -53,5 +53,5 @@ def build_result(model,x, Sigma, reg):
         eq_violation=eq_violation,
         lam=np.zeros(0),
         mu=np.zeros(0),
-        cputime=model.Runtime
+        cputime=int(1000 * model.Runtime)
     )
