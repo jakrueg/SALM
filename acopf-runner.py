@@ -1,4 +1,5 @@
 import argparse
+import csv
 
 import numpy as np
 
@@ -18,8 +19,17 @@ def main():
 		default="pglib_opf_case14_ieee",
 		help="PGLib case filename or stem",
 	)
-	parser.add_argument("--maxiter", type=int, default=2000)
-	parser.add_argument("--tol", type=float, default=1e-8)
+	parser.add_argument("--maxiter", type=int, default=100)
+	parser.add_argument("--tol", type=float, default=1e-3)
+	parser.add_argument(
+		"--diagnostics",
+		action="store_true",
+		help="print one inner/outer convergence summary per SALM iteration",
+	)
+	parser.add_argument(
+		"--diagnostics-file",
+		help="write detailed SALM iteration diagnostics to this CSV file",
+	)
 	args = parser.parse_args()
 
 	problem = acopf.load_problem("pglib-opf-master", args.case)
@@ -37,6 +47,34 @@ def main():
 	else:
 		from Algorithms import SALM
 
+		diagnostic_rows = []
+
+		def record_diagnostics(row):
+			row = dict(row)
+			x_diagnostic = row.pop("x")
+			row.update(problem.constraint_diagnostics(x_diagnostic))
+			diagnostic_rows.append(row)
+			if args.diagnostics:
+				print(
+					"iter={outer_iteration} pen={penalty:.3g} "
+					"inner={inner_success}/{inner_iterations} "
+					"res={inner_residual:.3g} "
+					"grad={inner_initial_gradient_inf:.3g}->"
+					"{inner_final_gradient_inf:.3g} "
+					"tau={inner_step_size:.3g} "
+					"bt={inner_backtracking_steps}/{inner_max_backtracking_steps} "
+					"eq={power_balance_inf:.3g} "
+					"bounds={:.3g} network={:.3g}".format(
+						row["voltage_bounds_max_violation"]
+						+ row["generator_bounds_max_violation"],
+						max(
+							row["branch_angle_max_violation"],
+							row["branch_thermal_max_violation"],
+						),
+						**row,
+					)
+				)
+
 		result = SALM.salm(
 			f=problem.objective,
 			phi=acopf.ZeroPenalty(),
@@ -46,9 +84,13 @@ def main():
 			f_grad=problem.objective_gradient,
 			jac_g=problem.jac_g,
 			jac_h=problem.jac_h,
-			subsolver="PANOC_plus",
+			#subsolver="PANOC_plus",
 			maxiter=args.maxiter,
 			tol=args.tol,
+			diagnostics_callback=(
+				record_diagnostics
+				if args.diagnostics or args.diagnostics_file else None
+			),
 		)
 		x = result.x
 		status = result.status
@@ -56,6 +98,16 @@ def main():
 		print("Status:", result.message)
 		print("Outer iterations:", result.outer_iterations)
 		print("Inner iterations:", result.inner_iterations)
+		if args.diagnostics_file:
+			fieldnames = [
+				key for key in diagnostic_rows[0] if key != "x"
+			] if diagnostic_rows else []
+			with open(args.diagnostics_file, "w", newline="", encoding="utf-8") as file:
+				writer = csv.DictWriter(file, fieldnames=fieldnames)
+				if fieldnames:
+					writer.writeheader()
+					writer.writerows(diagnostic_rows)
+			print("Diagnostics CSV:", args.diagnostics_file)
 
 	print("Objective:", problem.objective(x))
 	print("Power-balance equality violation:",

@@ -30,6 +30,7 @@ def salm(f,
          maxiter=200,
          tau=0.8,
          subsolver = 'ProxGrad',
+         diagnostics_callback=None,
          ):
     """
         Implementation of the safeguarded augmented Lagrangian method (SALM) for constrained composite optimization
@@ -147,9 +148,16 @@ def salm(f,
         f_val = float(f(x_value))
         g_temp = eval_g(x_value)
         h_temp = eval_h(x_value)
-        eq_term = np.dot(h_temp + (1/pen_temp)*mu_temp, h_temp + (1/pen_temp)*mu_temp) if len(h_temp) > 0 else 0.0
-        g_pos = np.maximum(0.0, g_temp+(1/pen_temp)*lam_temp) if len(g_temp) > 0 else 0.0
-        ineq_term = np.dot(g_pos,g_pos) if len(g_pos) > 0 else 0.0
+        eq_term = (
+            np.dot(h_temp + (1 / pen_temp) * mu_temp,
+                   h_temp + (1 / pen_temp) * mu_temp)
+            if p > 0 else 0.0
+        )
+        g_pos = (
+            np.maximum(0.0, g_temp + (1 / pen_temp) * lam_temp)
+            if m > 0 else np.zeros(0)
+        )
+        ineq_term = np.dot(g_pos, g_pos) if m > 0 else 0.0
         return f_val + 0.5* pen_temp *(ineq_term + eq_term)
 
     # SALM Loop
@@ -174,6 +182,9 @@ def salm(f,
         def inner_fun(x_value):
             return augmented_lagrangian(x_value, u, v, pen)
 
+        penalty_used = pen
+        inner_tol_used = inner_tol
+        inner_start = x.copy()
         # define augmented Lagrangian gradient for the subproblem solver
         inner_jac = AugmentedLagrangianGradient(g=g,h=h,f_grad=f_grad,jac_g=jac_g,jac_h=jac_h,lam_temp=u,mu_temp=v,pen_temp=pen,m=m,n=n,p=p)
         if phi.prox is not None:
@@ -217,7 +228,65 @@ def salm(f,
 
         # Termination criteria
         eq_violation = np.linalg.norm(np.atleast_1d(h_new),ord = np.inf)
-        ineq_violation = np.linalg.norm(np.minimum(-g_new,lam_new),ord = np.inf)
+        ineq_violation = (
+            np.linalg.norm(np.minimum(-g_new, lam_new), ord=np.inf)
+            if m > 0 else 0.0
+        )
+
+        diagnostics = None
+        if diagnostics_callback is not None:
+            g_values = np.atleast_1d(g_new) if m else np.zeros(0)
+            h_values = np.atleast_1d(h_new) if p else np.zeros(0)
+            diagnostics = {
+                "outer_iteration": tot_it,
+                "penalty": penalty_used,
+                "next_penalty": penalty_used,
+                "inner_tolerance": inner_tol_used,
+                "inner_success": bool(sub_solved),
+                "inner_status": getattr(res, "status", None),
+                "inner_message": getattr(res, "message", ""),
+                "inner_iterations": int(res.nit),
+                "inner_residual": float(getattr(res, "residual_norm", np.nan)),
+                "inner_step_size": float(getattr(res, "gamma", np.nan)),
+                "inner_initial_step_size": float(
+                    getattr(res, "initial_gamma", np.nan)
+                ),
+                "inner_min_step_size": float(getattr(res, "min_gamma", np.nan)),
+                "inner_backtracking_steps": int(
+                    getattr(res, "backtracking_steps", 0)
+                ),
+                "inner_max_backtracking_steps": int(
+                    getattr(res, "max_backtracking_steps", 0)
+                ),
+                "inner_initial_gradient_inf": float(
+                    getattr(res, "initial_gradient_norm", np.nan)
+                ),
+                "inner_final_gradient_inf": float(
+                    getattr(res, "gradient_norm", np.nan)
+                ),
+                "inner_step_norm": float(getattr(res, "step_norm", np.nan)),
+                "inner_objective_start": float(inner_fun(inner_start)),
+                "inner_objective_end": float(inner_fun(x_new)),
+                "objective": float(f(x_new)),
+                "equality_inf": float(np.linalg.norm(h_values, ord=np.inf)),
+                "inequality_max_violation": float(
+                    np.max(np.maximum(g_values, 0.0), initial=0.0)
+                ),
+                "inequality_active_count": int(np.count_nonzero(g_values >= -1e-6)),
+                "equality_multiplier_inf": float(
+                    np.linalg.norm(mu_new, ord=np.inf) if p else 0.0
+                ),
+                "inequality_multiplier_inf": float(
+                    np.linalg.norm(lam_new, ord=np.inf) if m else 0.0
+                ),
+                "finite": bool(
+                    np.all(np.isfinite(x_new))
+                    and np.all(np.isfinite(g_values))
+                    and np.all(np.isfinite(h_values))
+                    and np.isfinite(inner_fun(x_new))
+                ),
+                "x": x_new.copy(),
+            }
 
         solved = (inner_tol <= tol_dual and sub_solved) and eq_violation <= tol_prim and ineq_violation <= tol_prim
         tired = tot_it >= maxiter
@@ -229,6 +298,10 @@ def salm(f,
                 pen = np.minimum(gamma * pen, pen_max)
             # Decrease inner tolerance
             inner_tol = np.maximum(kappa_tol * inner_tol,tol_dual)
+        if diagnostics is not None:
+            diagnostics["next_penalty"] = float(pen)
+            diagnostics["next_inner_tolerance"] = float(inner_tol)
+            diagnostics_callback(diagnostics)
         # set up the constraint norms and multipliers for the next loop
         u = np.clip(lam_new, 0.0, lam_max)
         v = np.clip(mu_new, -mu_max, mu_max)

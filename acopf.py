@@ -341,6 +341,58 @@ class ACOPFProblem:
 		"""SALM inequality vector in its required convention, g(x) <= 0."""
 		return -self.inequalities(x)
 
+	def constraint_diagnostics(self, x):
+		"""Return physical-unit violation summaries grouped by constraint type."""
+		va, vm, _, _ = self._unpack(x)
+		margins = self.inequalities(x)
+		n, row = self.n_bus, 2 * self.n_bus
+		online_generators = int(np.count_nonzero(self.gen[:, GEN_STATUS] != 0))
+		generator_end = row + 4 * online_generators
+
+		def summarize(name, values):
+			violations = np.maximum(-np.asarray(values), 0.0)
+			return {
+				f"{name}_max_violation": float(
+					np.max(violations, initial=0.0)
+				),
+				f"{name}_violated_count": int(np.count_nonzero(violations > 1e-6)),
+			}
+
+		diagnostics = summarize("voltage_bounds", margins[:row])
+		diagnostics.update(summarize("generator_bounds", margins[row:generator_end]))
+
+		angle_margins, flow_margins = [], []
+		voltage = vm * np.exp(1j * va)
+		for k, branch in enumerate(self.branch):
+			f, t, yff, yft, ytf, ytt = self._branch_y[k]
+			if branch[BR_STATUS] == 0:
+				continue
+			angle = va[f] - va[t]
+			if branch[ANGMIN] > -360:
+				angle_margins.append(angle - np.deg2rad(branch[ANGMIN]))
+			if branch[ANGMAX] < 360:
+				angle_margins.append(np.deg2rad(branch[ANGMAX]) - angle)
+			if branch[RATE_A] > 0:
+				vf, vt = voltage[f], voltage[t]
+				sf = vf * np.conj(yff * vf + yft * vt) * self.base_mva
+				st = vt * np.conj(ytf * vf + ytt * vt) * self.base_mva
+				flow_margins.extend((
+					branch[RATE_A] ** 2 - abs(sf) ** 2,
+					branch[RATE_A] ** 2 - abs(st) ** 2,
+				))
+		diagnostics.update(summarize("branch_angle", angle_margins))
+		diagnostics.update(summarize("branch_thermal", flow_margins))
+
+		equalities = self.salm_equalities(x)
+		diagnostics["power_balance_inf"] = float(
+			np.linalg.norm(equalities[:2 * n], ord=np.inf)
+		)
+		diagnostics["fixed_equalities_inf"] = float(
+			np.linalg.norm(equalities[2 * n:], ord=np.inf)
+			if equalities.size > 2 * n else 0.0
+		)
+		return diagnostics
+
 	def inequality_jacobian(self, x):
 		"""Sparse Jacobian of the positive feasibility margins from inequalities()."""
 		rows, columns, values = [], [], []

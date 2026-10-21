@@ -12,6 +12,14 @@ class OptimizeResultProxGrad:
     fun: float
     residual_norm: float
     gamma: float
+    initial_gradient_norm: float = float("nan")
+    gradient_norm: float = float("nan")
+    step_norm: float = float("nan")
+    backtracking_steps: int = 0
+    max_backtracking_steps: int = 0
+    initial_gamma: float = float("nan")
+    min_gamma: float = float("nan")
+    finite: bool = True
 
 def proximal_gradient(
     fun, grad, phi, x0,
@@ -30,6 +38,10 @@ def proximal_gradient(
     """
     x = np.asarray(x0, dtype=float).copy()
     tau = tau0
+    initial_gamma = tau
+    min_gamma = tau
+    total_backtracking_steps = 0
+    max_backtracking_steps = 0
     delta = 0.9
     MAX_BACKTRACK = 30
 
@@ -37,9 +49,12 @@ def proximal_gradient(
         fx = fun(x)
         phix = phi(x)
         gx = grad(x)
+        if k == 0:
+            initial_gradient_norm = float(np.linalg.norm(gx, ord=np.inf))
 
         # Backtracking on the smooth part
         accepted = False
+        backtracking_steps = 0
         for _ in range(MAX_BACKTRACK):
             tau_try = tau
             x_new = phi.prox(x - tau_try * gx, tau_try)
@@ -52,9 +67,12 @@ def proximal_gradient(
                 break
 
             tau *= beta
+            backtracking_steps += 1
 
+        min_gamma = min(min_gamma, tau_try)
         if not accepted:
-            #print("Backtracking failed to find an acceptable step.")
+            total_backtracking_steps += backtracking_steps
+            max_backtracking_steps = max(max_backtracking_steps, backtracking_steps)
             return OptimizeResultProxGrad(
                 x=x,
                 success=False,
@@ -63,14 +81,29 @@ def proximal_gradient(
                 nit=k,
                 fun=fun(x),
                 residual_norm=float("inf"),
-                gamma=tau_try,
+                gamma=tau,
+                initial_gradient_norm=initial_gradient_norm,
+                gradient_norm=float(np.linalg.norm(gx, ord=np.inf)),
+                step_norm=0.0,
+                backtracking_steps=total_backtracking_steps,
+                max_backtracking_steps=max_backtracking_steps,
+                initial_gamma=initial_gamma,
+                min_gamma=min_gamma,
+                finite=bool(np.all(np.isfinite(x)) and np.all(np.isfinite(gx))),
             )
         tau = tau_try
-        # Proximal-gradient mapping residual
+        total_backtracking_steps += backtracking_steps
+        max_backtracking_steps = max(max_backtracking_steps, backtracking_steps)
         g_new = grad(x_new)
-        residual = np.linalg.norm(g_new-gx-d/tau) 
+        residual = np.linalg.norm(g_new-gx-d/tau,np.inf) 
 
         x = x_new
+        finite = bool(
+            np.all(np.isfinite(x))
+            and np.all(np.isfinite(g_new))
+            and np.isfinite(residual)
+            and np.isfinite(fun(x))
+        )
 
         if residual <= tol:
             return  OptimizeResultProxGrad(
@@ -82,6 +115,14 @@ def proximal_gradient(
                 fun=fun(x),
                 residual_norm=residual,
                 gamma=tau,
+                initial_gradient_norm=initial_gradient_norm,
+                gradient_norm=float(np.linalg.norm(g_new, ord=np.inf)),
+                step_norm=step_norm,
+                backtracking_steps=total_backtracking_steps,
+                max_backtracking_steps=max_backtracking_steps,
+                initial_gamma=initial_gamma,
+                min_gamma=min_gamma,
+                finite=finite,
             )
 
     return  OptimizeResultProxGrad(
@@ -93,4 +134,12 @@ def proximal_gradient(
         fun=fun(x),
         residual_norm=residual,
         gamma=tau,
-    )       
+        initial_gradient_norm=initial_gradient_norm,
+        gradient_norm=float(np.linalg.norm(grad(x), ord=np.inf)),
+        step_norm=step_norm,
+        backtracking_steps=total_backtracking_steps,
+        max_backtracking_steps=max_backtracking_steps,
+        initial_gamma=initial_gamma,
+        min_gamma=min_gamma,
+        finite=bool(np.all(np.isfinite(x)) and np.isfinite(residual)),
+    )

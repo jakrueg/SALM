@@ -22,3 +22,8 @@ ppPGouter_iterations.csv
 ppGurobiinner_iterations.csv
 ppPANOCinner_iterations.csv
 ppPGinner_iterations.csv
+salm-diagnostics.csv
+tests/
+.vscode/
+acopf-runner.py
+__pycache__/

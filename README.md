@@ -64,6 +64,12 @@ IPOPT is the runner's default; pass ``--solver salm`` to run SALM instead.
 Variable limits are supplied to IPOPT as native box bounds, while power
 balances and branch-flow/angle limits are supplied as nonlinear constraints.
 
+For SALM diagnostics, pass ``--diagnostics`` to print a compact summary per
+outer iteration, or ``--diagnostics-file salm-diagnostics.csv`` to save detailed
+inner/outer metrics and AC-OPF constraint-group violations as CSV. The
+proximal-gradient residual is the norm of the proximal-gradient mapping,
+``||x - prox(x - tau * grad(F(x)), tau)|| / tau``.
+
 
 
 ## Bug reports and support

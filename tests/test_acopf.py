@@ -81,6 +81,18 @@ class ACOPFDerivativeTests(unittest.TestCase):
 		numeric = self.finite_difference_jacobian(problem.ipopt_constraints)
 		np.testing.assert_allclose(jacobian.toarray(), numeric, rtol=1e-7, atol=1e-4)
 
+	def test_constraint_diagnostics_cover_all_physical_constraint_groups(self):
+		diagnostics = self.problem.constraint_diagnostics(self.x)
+		for name in (
+			"voltage_bounds_max_violation",
+			"generator_bounds_max_violation",
+			"branch_angle_max_violation",
+			"branch_thermal_max_violation",
+			"power_balance_inf",
+			"fixed_equalities_inf",
+		):
+			self.assertIn(name, diagnostics)
+
 
 if __name__ == "__main__":
 	unittest.main()
