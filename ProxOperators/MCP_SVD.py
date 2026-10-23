@@ -60,4 +60,11 @@ class MCP_SVD(ProxOperator):
             x3 =x.copy()
             x3[np.abs(x3) <= self.delta] = 0
             return U @ np.diag(x3) @ Vh
-
+    
+    def subdiff(self, W):
+            U,x,Vh = np.linalg.svd(W, full_matrices=False)
+            subdiff_MCP_vec =  np.zeros_like(x)
+            mask = np.logical_and(x > 0.0, x < self.delta)
+            subdiff_MCP_vec[mask] = self.sigma*(2/self.delta - 2*x[mask]/(self.delta**2))
+    
+            return U @ np.diag(subdiff_MCP_vec) @ Vh

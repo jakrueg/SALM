@@ -73,6 +73,7 @@ def proximal_gradient(
         if not accepted:
             total_backtracking_steps += backtracking_steps
             max_backtracking_steps = max(max_backtracking_steps, backtracking_steps)
+            #print(f"Backtracking failed to find an acceptable step at iteration {k}.")
             return OptimizeResultProxGrad(
                 x=x,
                 success=False,
