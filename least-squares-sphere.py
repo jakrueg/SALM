@@ -19,8 +19,8 @@ def random_orthonormal(n, r, rng=None):
 
 delta = 1.5
 lam = 0.1
-#regularizer = MCP_SVD.MCP_SVD(sigma=lam, delta=delta)
-regularizer = Lp12_SVD.MCP_Lp12(sigma=3.3*lam)
+regularizer = MCP_SVD.MCP_SVD(sigma=lam, delta=delta)
+#regularizer = Lp12_SVD.MCP_Lp12(sigma=3.3*lam)
 
 def generate_random_problem(n=100, r=20, seed=0):
     """
@@ -116,7 +116,7 @@ csv_fields = [
 with output_path.open("w", newline="", encoding="utf-8") as csv_file:
     csv.DictWriter(csv_file, fieldnames=csv_fields).writeheader()
 
-for seed in range(5):
+for seed in range(10):
     #W, R, X0, X_ref = generate_problem(n, r,seed=seed)
     W,R, X0 = generate_random_problem(n, r, seed=seed)
 

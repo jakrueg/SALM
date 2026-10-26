@@ -26,4 +26,8 @@ salm-diagnostics.csv
 tests/
 .vscode/
 acopf-runner.py
+acopf.py
+Algorithms/panoc_plus.py
+CUTEst_test_bench.py
+tests/
 __pycache__/
