@@ -19,7 +19,7 @@ The problem terms are accessed through the following oracles:
 * ```g```: function value g(x) and Jacobian ∇g(x)
 * ```h```: function value h(x) and Jacobian ∇h(x)
 
-Implementations for proximal operators can be found in ``ProxOperators`` or using [pyproximal](https://github.com/PyLops/pyproximal). Subproblem solvers are ``PANOCplus`` adapted from [ProximalAlgorithms.jl](https://github.com/JuliaFirstOrder/ProximalAlgorithms.jl) and a proximal Gradient method from [this paper](https://doi.org/10.1007/s10957-022-02101-3). As a testing example, we implemented a sparse portfolio optimization problem using data from [Frangioni et al.](https://commalab.di.unipi.it/datasets/mv/)
+Implementations for proximal operators can be found in ``ProxOperators`` or using [pyproximal](https://github.com/PyLops/pyproximal). Subproblem solvers are a proximal gradient method from [this paper](https://doi.org/10.1007/s10957-022-02101-3) and ``PANOCplus`` adapted from [ProximalAlgorithms.jl](https://github.com/JuliaFirstOrder/ProximalAlgorithms.jl). As testing examples, we implemented a sparse portfolio optimization problem using data from [Frangioni et al.](https://commalab.di.unipi.it/datasets/mv/) as well as a low-rank least squares problem with sphere constraints.
 
 
 

@@ -2,6 +2,7 @@ import numpy as np
 import time
 
 from Algorithms import prox_grad
+from Algorithms import panoc_plus
 from Utilities.AugmentedLagrangianGradient import AugmentedLagrangianGradient
 from results import OptimizationResult
 
@@ -187,10 +188,18 @@ def salm(f,
         # define augmented Lagrangian gradient for the subproblem solver
         inner_jac = AugmentedLagrangianGradient(g=g,h=h,f_grad=f_grad,jac_g=jac_g,jac_h=jac_h,lam_temp=u,mu_temp=v,pen_temp=pen,m=m,n=n,p=p)
         if phi.prox is not None:
-            # subproblem solver proximal gradient
-            #res = copt.minimize_proximal_gradient(fun=inner_fun, jac=inner_jac, prox=phi.prox, x0=x, verbose=2, tol=inner_tol)
-            res = prox_grad.proximal_gradient(fun=inner_fun, grad=inner_jac, phi=phi, x0=x, tau0=1.0, beta=0.5, max_iter=1000, tol=inner_tol)
-            sub_solved = res.success
+            if subsolver == 'PANOC_plus':
+                # subproblem solver PANOC+
+                res = panoc_plus.panoc_plus(fun=inner_fun, grad=inner_jac, phi=phi, x0=x, verbose=False, tol=inner_tol,
+                                            A=np.eye(n), maxiter=500)
+                sub_solved = res.success
+                # check if PANOC+ gamma got to small
+                broken = res.status == 2
+            else:
+                # subproblem solver proximal gradient
+                #res = copt.minimize_proximal_gradient(fun=inner_fun, jac=inner_jac, prox=phi.prox, x0=x, verbose=2, tol=inner_tol)
+                res = prox_grad.proximal_gradient(fun=inner_fun, grad=inner_jac, phi=phi, x0=x, tau0=1.0, beta=0.5, max_iter=1000, tol=inner_tol)
+                sub_solved = res.success
             tot_inner_it += res.nit
         else:
             print("No suitable prox-operator!")

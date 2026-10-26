@@ -19,8 +19,8 @@ def random_orthonormal(n, r, rng=None):
 
 delta = 1.5
 lam = 0.1
-regularizer = MCP_SVD.MCP_SVD(sigma=lam, delta=delta)
-#regularizer = Lp12_SVD.MCP_Lp12(sigma=3.3*lam)
+#regularizer = MCP_SVD.MCP_SVD(sigma=lam, delta=delta)
+regularizer = Lp12_SVD.MCP_Lp12(sigma=3.3*lam)
 
 def generate_random_problem(n=100, r=20, seed=0):
     """
@@ -47,34 +47,6 @@ def generate_random_problem(n=100, r=20, seed=0):
     X0 = R*W/np.linalg.norm(W, 'fro')
     return W, R, X0
 
-def generate_problem(n=100, r=20, seed=0):
-    """
-    Generate a least-squares problem on the sphere.
-
-    Minimize ||X - W||_F^2 subject to ||X||_F^2 = R^2
-    where W is a given matrix and R is a given radius.
-    """
-    mu = 0.7
-    R = 3
-  
-
-    rng = np.random.default_rng(seed)
-    U = random_orthonormal(n, r, rng)
-    V = random_orthonormal(n, r, rng)
-
-    singular_values = rng.uniform(low=0.5, high=2, size=r)
-
-    correction_factor = R/np.linalg.norm(singular_values)
-    singular_values *= correction_factor
-
-    X = U @ np.diag(singular_values) @ V.T
-
-
-    W = (1+2*mu) * X + regularizer.subdiff(X)
-
-    X0 = R*W/np.linalg.norm(W, 'fro')
-    return W, R, X0, X
-
 
 class VectorizedMatrixProx:
     """Adapt a matrix proximal operator to SALM's vector decision variables."""
@@ -93,7 +65,7 @@ class VectorizedMatrixProx:
 
 
 n= 100
-r = 10
+r = 20
 
 output_dir = Path(__file__).resolve().parent / "csv" / "ls-sphere"
 output_dir.mkdir(parents=True, exist_ok=True)
