@@ -93,7 +93,7 @@ class VectorizedMatrixProx:
 
 
 n= 100
-r = 20
+r = 10
 
 output_dir = Path(__file__).resolve().parent / "csv" / "ls-sphere"
 output_dir.mkdir(parents=True, exist_ok=True)
